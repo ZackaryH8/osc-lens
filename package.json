@@ -1,0 +1,30 @@
+{
+  "name": "osc-lens",
+  "displayName": "OSC Lens",
+  "description": "Syntax highlighting, completion and diagnostics for OMSI 2 .osc scripts, driven by OMSI.MP's reverse-engineering notes.",
+  "version": "0.0.1",
+  "publisher": "omsi-mp",
+  "private": true,
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Programming Languages"],
+  "contributes": {
+    "languages": [
+      {
+        "id": "osc",
+        "aliases": ["OMSI Script", "osc"],
+        "extensions": [".osc"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "osc",
+        "scopeName": "source.osc",
+        "path": "./syntaxes/osc.tmLanguage.json"
+      }
+    ]
+  },
+  "scripts": {
+    "test": "node scripts/check-language-data.mjs"
+  }
+}

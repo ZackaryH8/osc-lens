@@ -1,0 +1,935 @@
+{
+  "_comment": "Single source of truth for OSC Lens. evidence: ida = Omsi.exe-derived in RE/*.md; corpus = derived from OMX and the stock .osc corpus; hyp = unverified.",
+  "version": 1,
+  "registers": {
+    "load": "l0..l15",
+    "store": "s0..s15",
+    "note": "OMX accepts 16; the official guide documents 0..7. Stores peek (do not pop)."
+  },
+  "stackDepth": 8,
+  "operators": [
+    {
+      "token": "+",
+      "pops": 2,
+      "pushes": 1,
+      "doc": "a b + → a+b",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "-",
+      "pops": 2,
+      "pushes": 1,
+      "doc": "a b - → a−b",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "*",
+      "pops": 2,
+      "pushes": 1,
+      "doc": "a b * → a·b",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "/",
+      "pops": 2,
+      "pushes": 1,
+      "doc": "a b / → a/b; division by zero gives 0 (OMX behaviour, not IDA-proven)",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "%",
+      "pops": 2,
+      "pushes": 1,
+      "doc": "a b % → a mod b; zero divisor gives 0 (OMX behaviour)",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "/-/",
+      "pops": 1,
+      "pushes": 1,
+      "doc": "Negate st[0].",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "min",
+      "pops": 2,
+      "pushes": 1,
+      "doc": "Minimum of the top two values.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "max",
+      "pops": 2,
+      "pushes": 1,
+      "doc": "Maximum of the top two values.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "abs",
+      "pops": 1,
+      "pushes": 1,
+      "doc": "Absolute value.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "sqrt",
+      "pops": 1,
+      "pushes": 1,
+      "doc": "Square root.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "sqr",
+      "pops": 1,
+      "pushes": 1,
+      "doc": "Square.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "exp",
+      "pops": 1,
+      "pushes": 1,
+      "doc": "e^x.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "sgn",
+      "pops": 1,
+      "pushes": 1,
+      "doc": "Sign (-1, 0, 1).",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "trunc",
+      "pops": 1,
+      "pushes": 1,
+      "doc": "Truncate toward zero.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "ln",
+      "pops": 1,
+      "pushes": 1,
+      "doc": "Natural logarithm.",
+      "evidence": "hyp",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "Present in OMX Ops but absent from the exe operator-token list quoted in openOMSI docs/FORMATS.md; unverified against Omsi.exe."
+    },
+    {
+      "token": "sign",
+      "pops": 1,
+      "pushes": 1,
+      "doc": "Alias of sgn.",
+      "evidence": "hyp",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "Present in OMX Ops but absent from the exe operator-token list quoted in openOMSI docs/FORMATS.md; unverified against Omsi.exe."
+    },
+    {
+      "token": "frac",
+      "pops": 1,
+      "pushes": 1,
+      "doc": "Fractional part.",
+      "evidence": "hyp",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "Present in OMX Ops but absent from the exe operator-token list quoted in openOMSI docs/FORMATS.md; unverified against Omsi.exe."
+    },
+    {
+      "token": "round",
+      "pops": 1,
+      "pushes": 1,
+      "doc": "Round to nearest.",
+      "evidence": "hyp",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "Present in OMX Ops but absent from the exe operator-token list quoted in openOMSI docs/FORMATS.md; unverified against Omsi.exe."
+    },
+    {
+      "token": "cos",
+      "pops": 1,
+      "pushes": 1,
+      "doc": "Cosine (radians).",
+      "evidence": "hyp",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "Present in OMX Ops but absent from the exe operator-token list quoted in openOMSI docs/FORMATS.md; unverified against Omsi.exe."
+    },
+    {
+      "token": "tan",
+      "pops": 1,
+      "pushes": 1,
+      "doc": "Tangent (radians).",
+      "evidence": "hyp",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "Present in OMX Ops but absent from the exe operator-token list quoted in openOMSI docs/FORMATS.md; unverified against Omsi.exe."
+    },
+    {
+      "token": "arccos",
+      "pops": 1,
+      "pushes": 1,
+      "doc": "Inverse cosine.",
+      "evidence": "hyp",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "Present in OMX Ops but absent from the exe operator-token list quoted in openOMSI docs/FORMATS.md; unverified against Omsi.exe."
+    },
+    {
+      "token": "sin",
+      "pops": 1,
+      "pushes": 1,
+      "doc": "Sine (radians).",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "arcsin",
+      "pops": 1,
+      "pushes": 1,
+      "doc": "Inverse sine.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "arctan",
+      "pops": 1,
+      "pushes": 1,
+      "doc": "Inverse tangent.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "pi",
+      "pops": 0,
+      "pushes": 1,
+      "doc": "Pushes π.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "random",
+      "pops": 1,
+      "pushes": 1,
+      "doc": "Replaces st[0] by a random whole number in [0, |round(x)|).",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "=",
+      "pops": 2,
+      "pushes": 1,
+      "doc": "Equality → 1/0.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "<",
+      "pops": 2,
+      "pushes": 1,
+      "doc": "Less than → 1/0.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": ">",
+      "pops": 2,
+      "pushes": 1,
+      "doc": "Greater than → 1/0.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "<=",
+      "pops": 2,
+      "pushes": 1,
+      "doc": "Less or equal → 1/0.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": ">=",
+      "pops": 2,
+      "pushes": 1,
+      "doc": "Greater or equal → 1/0.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "&&",
+      "pops": 2,
+      "pushes": 1,
+      "doc": "Logical and → 1/0.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "||",
+      "pops": 2,
+      "pushes": 1,
+      "doc": "Logical or → 1/0.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "!",
+      "pops": 1,
+      "pushes": 1,
+      "doc": "Logical not → 1/0.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "d",
+      "pops": 1,
+      "pushes": 2,
+      "doc": "Duplicate st[0].",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    },
+    {
+      "token": "$d",
+      "pops": null,
+      "pushes": null,
+      "doc": "Duplicate top string.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "String-stack effect not yet tabulated; stack analysis skips it."
+    },
+    {
+      "token": "$+",
+      "pops": null,
+      "pushes": null,
+      "doc": "Concatenate two strings.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "String-stack effect not yet tabulated; stack analysis skips it."
+    },
+    {
+      "token": "$*",
+      "pops": null,
+      "pushes": null,
+      "doc": "Repeat a string.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "String-stack effect not yet tabulated; stack analysis skips it."
+    },
+    {
+      "token": "$length",
+      "pops": null,
+      "pushes": null,
+      "doc": "Push length of top string and leave the string.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "String-stack effect not yet tabulated; stack analysis skips it."
+    },
+    {
+      "token": "$cutBegin",
+      "pops": null,
+      "pushes": null,
+      "doc": "Cut characters from the start.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "String-stack effect not yet tabulated; stack analysis skips it."
+    },
+    {
+      "token": "$cutEnd",
+      "pops": null,
+      "pushes": null,
+      "doc": "Cut characters from the end.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "String-stack effect not yet tabulated; stack analysis skips it."
+    },
+    {
+      "token": "$SetLengthL",
+      "pops": null,
+      "pushes": null,
+      "doc": "Keep left n characters or pad on the right.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "String-stack effect not yet tabulated; stack analysis skips it."
+    },
+    {
+      "token": "$SetLengthR",
+      "pops": null,
+      "pushes": null,
+      "doc": "Keep right n characters or pad on the left.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "String-stack effect not yet tabulated; stack analysis skips it."
+    },
+    {
+      "token": "$SetLengthC",
+      "pops": null,
+      "pushes": null,
+      "doc": "Centre/pad to length n.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "String-stack effect not yet tabulated; stack analysis skips it."
+    },
+    {
+      "token": "$IntToStr",
+      "pops": null,
+      "pushes": null,
+      "doc": "Integer to string.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "String-stack effect not yet tabulated; stack analysis skips it."
+    },
+    {
+      "token": "$IntToStrEnh",
+      "pops": null,
+      "pushes": null,
+      "doc": "Integer to string with format (pad char + width).",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "String-stack effect not yet tabulated; stack analysis skips it."
+    },
+    {
+      "token": "$StrToFloat",
+      "pops": null,
+      "pushes": null,
+      "doc": "String to number; -1 when not a number.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "String-stack effect not yet tabulated; stack analysis skips it."
+    },
+    {
+      "token": "$RemoveSpaces",
+      "pops": null,
+      "pushes": null,
+      "doc": "Strip spaces.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "String-stack effect not yet tabulated; stack analysis skips it."
+    },
+    {
+      "token": "$=",
+      "pops": null,
+      "pushes": null,
+      "doc": "String equality.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "String-stack effect not yet tabulated; stack analysis skips it."
+    },
+    {
+      "token": "$<",
+      "pops": null,
+      "pushes": null,
+      "doc": "String less than.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "String-stack effect not yet tabulated; stack analysis skips it."
+    },
+    {
+      "token": "$>",
+      "pops": null,
+      "pushes": null,
+      "doc": "String greater than.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "String-stack effect not yet tabulated; stack analysis skips it."
+    },
+    {
+      "token": "$<=",
+      "pops": null,
+      "pushes": null,
+      "doc": "String less or equal.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "String-stack effect not yet tabulated; stack analysis skips it."
+    },
+    {
+      "token": "$>=",
+      "pops": null,
+      "pushes": null,
+      "doc": "String greater or equal.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "String-stack effect not yet tabulated; stack analysis skips it."
+    },
+    {
+      "token": "$=>",
+      "pops": null,
+      "pushes": null,
+      "doc": "Accepted by OMX as $>= (appears in mod scripts).",
+      "evidence": "hyp",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "String-stack effect not yet tabulated; stack analysis skips it."
+    },
+    {
+      "token": "$msg",
+      "pops": null,
+      "pushes": null,
+      "doc": "Show top string without popping.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
+      "note": "String-stack effect not yet tabulated; stack analysis skips it."
+    },
+    {
+      "token": "%stackdump%",
+      "pops": 0,
+      "pushes": 0,
+      "doc": "Dumps the stack to the log.",
+      "evidence": "corpus",
+      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)"
+    }
+  ],
+  "directives": [
+    {
+      "token": "init",
+      "doc": "Entry block run once at initialisation.",
+      "evidence": "corpus",
+      "source": "RE/omsi-2.3-vehicle-script-ingestion-audit.md; OMX ScriptCompiler.cs:56-121"
+    },
+    {
+      "token": "frame",
+      "doc": "Entry block run every frame.",
+      "evidence": "corpus",
+      "source": "RE/omsi-2.3-vehicle-script-ingestion-audit.md; OMX ScriptCompiler.cs:56-121"
+    },
+    {
+      "token": "frame_ai",
+      "doc": "Per-frame block run only on the path-following AI route, never on ghosts.",
+      "evidence": "ida",
+      "source": "RE/omsi-2.3-vehicle-sound-system.md:51-56"
+    },
+    {
+      "token": "macro",
+      "arg": true,
+      "doc": "{macro:name} … {end}. Callable with (M.L.name).",
+      "evidence": "corpus",
+      "source": "RE/omsi-2.3-vehicle-script-ingestion-audit.md; OMX ScriptCompiler.cs:56-121"
+    },
+    {
+      "token": "trigger",
+      "arg": true,
+      "doc": "{trigger:name} … {end}. Runs for trigger value 1; name_drag runs for 2; name_off otherwise. A repeated name never runs (first match wins, 0x5D2AF0).",
+      "evidence": "ida",
+      "source": "RE/omsi-2.3-clickable-controls-spec.md:18-20"
+    },
+    {
+      "token": "end",
+      "doc": "Closes an entry block.",
+      "evidence": "corpus",
+      "source": "RE/omsi-2.3-vehicle-script-ingestion-audit.md; OMX ScriptCompiler.cs:56-121"
+    },
+    {
+      "token": "if",
+      "doc": "Branch on the popped condition (OMX); OMSI semantics of pop vs peek are unconfirmed.",
+      "evidence": "hyp",
+      "source": "RE/omsi-2.3-vehicle-script-ingestion-audit.md; OMX ScriptCompiler.cs:56-121"
+    },
+    {
+      "token": "else",
+      "doc": "Else branch.",
+      "evidence": "corpus",
+      "source": "RE/omsi-2.3-vehicle-script-ingestion-audit.md; OMX ScriptCompiler.cs:56-121"
+    },
+    {
+      "token": "endif",
+      "doc": "Closes {if}.",
+      "evidence": "corpus",
+      "source": "RE/omsi-2.3-vehicle-script-ingestion-audit.md; OMX ScriptCompiler.cs:56-121"
+    }
+  ],
+  "accessKinds": [
+    {
+      "kind": "L",
+      "scope": "L",
+      "doc": "Load local numeric variable.",
+      "evidence": "corpus",
+      "source": "OMX ScriptCompiler.cs:148-169"
+    },
+    {
+      "kind": "S",
+      "scope": "L",
+      "doc": "Store st[0] to local numeric variable (does not pop).",
+      "evidence": "corpus",
+      "source": "OMX ScriptCompiler.cs:148-169"
+    },
+    {
+      "kind": "L",
+      "scope": "$",
+      "doc": "Load string variable.",
+      "evidence": "corpus",
+      "source": "OMX ScriptCompiler.cs:148-169"
+    },
+    {
+      "kind": "S",
+      "scope": "$",
+      "doc": "Store string variable.",
+      "evidence": "corpus",
+      "source": "OMX ScriptCompiler.cs:148-169"
+    },
+    {
+      "kind": "L",
+      "scope": "S",
+      "doc": "Load system variable.",
+      "evidence": "corpus",
+      "source": "OMX ScriptCompiler.cs:148-169"
+    },
+    {
+      "kind": "S",
+      "scope": "S",
+      "doc": "Store system variable (OMX discards).",
+      "evidence": "corpus",
+      "source": "OMX ScriptCompiler.cs:148-169"
+    },
+    {
+      "kind": "C",
+      "scope": "L",
+      "doc": "Constant from a [constfile].",
+      "evidence": "corpus",
+      "source": "OMX ScriptCompiler.cs:148-169"
+    },
+    {
+      "kind": "F",
+      "scope": "L",
+      "doc": "Curve from a [constfile]; pops x pushes y.",
+      "evidence": "corpus",
+      "source": "OMX ScriptCompiler.cs:148-169"
+    },
+    {
+      "kind": "M",
+      "scope": "L",
+      "doc": "Call a script macro.",
+      "evidence": "corpus",
+      "source": "OMX ScriptCompiler.cs:148-169"
+    },
+    {
+      "kind": "M",
+      "scope": "V",
+      "doc": "Engine callback.",
+      "evidence": "corpus",
+      "source": "OMX ScriptCompiler.cs:148-169"
+    },
+    {
+      "kind": "T",
+      "scope": "L",
+      "doc": "Fire a trigger.",
+      "evidence": "corpus",
+      "source": "OMX ScriptCompiler.cs:148-169"
+    },
+    {
+      "kind": "T",
+      "scope": "F",
+      "doc": "Fire a trigger with a file name popped from the string stack.",
+      "evidence": "corpus",
+      "source": "OMX ScriptCompiler.cs:148-169"
+    }
+  ],
+  "systemVariables": [
+    {
+      "name": "Timegap",
+      "evidence": "corpus",
+      "source": "OMX VehicleScriptHost.cs:195-218"
+    },
+    {
+      "name": "Time",
+      "evidence": "corpus",
+      "source": "OMX VehicleScriptHost.cs:195-218"
+    },
+    {
+      "name": "GetTime",
+      "evidence": "corpus",
+      "source": "OMX VehicleScriptHost.cs:195-218"
+    },
+    {
+      "name": "Year",
+      "evidence": "corpus",
+      "source": "OMX VehicleScriptHost.cs:195-218"
+    },
+    {
+      "name": "Month",
+      "evidence": "corpus",
+      "source": "OMX VehicleScriptHost.cs:195-218"
+    },
+    {
+      "name": "Day",
+      "evidence": "corpus",
+      "source": "OMX VehicleScriptHost.cs:195-218"
+    },
+    {
+      "name": "DayOfYear",
+      "evidence": "corpus",
+      "source": "OMX VehicleScriptHost.cs:195-218"
+    },
+    {
+      "name": "SunAlt",
+      "evidence": "corpus",
+      "source": "OMX VehicleScriptHost.cs:195-218"
+    },
+    {
+      "name": "Weather_Temperature",
+      "evidence": "corpus",
+      "source": "OMX VehicleScriptHost.cs:195-218"
+    },
+    {
+      "name": "Weather_AbsHum",
+      "evidence": "corpus",
+      "source": "OMX VehicleScriptHost.cs:195-218"
+    },
+    {
+      "name": "PrecipType",
+      "evidence": "corpus",
+      "source": "OMX VehicleScriptHost.cs:195-218"
+    },
+    {
+      "name": "PrecipRate",
+      "evidence": "corpus",
+      "source": "OMX VehicleScriptHost.cs:195-218"
+    },
+    {
+      "name": "mouse_x",
+      "evidence": "corpus",
+      "source": "OMX VehicleScriptHost.cs:195-218"
+    },
+    {
+      "name": "mouse_y",
+      "evidence": "corpus",
+      "source": "OMX VehicleScriptHost.cs:195-218"
+    },
+    {
+      "name": "coll_energy",
+      "evidence": "corpus",
+      "source": "OMX VehicleScriptHost.cs:195-218"
+    },
+    {
+      "name": "coll_pos_x",
+      "evidence": "corpus",
+      "source": "OMX VehicleScriptHost.cs:195-218"
+    },
+    {
+      "name": "coll_pos_y",
+      "evidence": "corpus",
+      "source": "OMX VehicleScriptHost.cs:195-218"
+    },
+    {
+      "name": "coll_pos_z",
+      "evidence": "corpus",
+      "source": "OMX VehicleScriptHost.cs:195-218"
+    }
+  ],
+  "callbacks": [
+    {
+      "name": "GetRouteIndex",
+      "group": "road-vehicle",
+      "evidence": "ida",
+      "source": "TRoadVehicleInst_ScriptCallback 0x7D2AEC; program/callbacklist_roadvehicle.txt"
+    },
+    {
+      "name": "GetBusstopString",
+      "group": "road-vehicle",
+      "evidence": "ida",
+      "source": "TRoadVehicleInst_ScriptCallback 0x7D2AEC; program/callbacklist_roadvehicle.txt"
+    },
+    {
+      "name": "GetTerminusString",
+      "group": "road-vehicle",
+      "evidence": "ida",
+      "source": "TRoadVehicleInst_ScriptCallback 0x7D2AEC; program/callbacklist_roadvehicle.txt"
+    },
+    {
+      "name": "GetRouteTerminusIndex",
+      "group": "road-vehicle",
+      "evidence": "ida",
+      "source": "TRoadVehicleInst_ScriptCallback 0x7D2AEC; program/callbacklist_roadvehicle.txt"
+    },
+    {
+      "name": "GetTerminusIndex",
+      "group": "road-vehicle",
+      "evidence": "ida",
+      "source": "TRoadVehicleInst_ScriptCallback 0x7D2AEC; program/callbacklist_roadvehicle.txt"
+    },
+    {
+      "name": "GetTerminusCode",
+      "group": "road-vehicle",
+      "evidence": "ida",
+      "source": "TRoadVehicleInst_ScriptCallback 0x7D2AEC; program/callbacklist_roadvehicle.txt"
+    },
+    {
+      "name": "GetBusstopCount",
+      "group": "road-vehicle",
+      "evidence": "ida",
+      "source": "TRoadVehicleInst_ScriptCallback 0x7D2AEC; program/callbacklist_roadvehicle.txt"
+    },
+    {
+      "name": "GetRouteBusstopIdent",
+      "group": "road-vehicle",
+      "evidence": "ida",
+      "source": "TRoadVehicleInst_ScriptCallback 0x7D2AEC; program/callbacklist_roadvehicle.txt"
+    },
+    {
+      "name": "GetBusstopIndex",
+      "group": "road-vehicle",
+      "evidence": "ida",
+      "source": "TRoadVehicleInst_ScriptCallback 0x7D2AEC; program/callbacklist_roadvehicle.txt"
+    },
+    {
+      "name": "GetDepotStringGlobal",
+      "group": "road-vehicle",
+      "evidence": "ida",
+      "source": "TRoadVehicleInst_ScriptCallback 0x7D2AEC; program/callbacklist_roadvehicle.txt"
+    },
+    {
+      "name": "NrSpecRandom",
+      "group": "road-vehicle",
+      "evidence": "ida",
+      "source": "TRoadVehicleInst_ScriptCallback 0x7D2AEC; program/callbacklist_roadvehicle.txt"
+    },
+    {
+      "name": "GetHeightAbovePoint",
+      "group": "road-vehicle",
+      "evidence": "hyp",
+      "source": "OMX DevDocs/script-system-macro-plan.md:113-126",
+      "note": "Stack effect not tabulated."
+    },
+    {
+      "name": "GetHumanCountOnSeat",
+      "group": "road-vehicle",
+      "evidence": "hyp",
+      "source": "OMX DevDocs/script-system-macro-plan.md:113-126",
+      "note": "Stack effect not tabulated."
+    },
+    {
+      "name": "GetHumanCountOnPathLink",
+      "group": "road-vehicle",
+      "evidence": "hyp",
+      "source": "OMX DevDocs/script-system-macro-plan.md:113-126",
+      "note": "Stack effect not tabulated."
+    },
+    {
+      "name": "GetTTDelay",
+      "group": "road-vehicle",
+      "evidence": "hyp",
+      "source": "OMX DevDocs/script-system-macro-plan.md:113-126",
+      "note": "Stack effect not tabulated."
+    },
+    {
+      "name": "GetTicketName",
+      "group": "road-vehicle",
+      "evidence": "hyp",
+      "source": "OMX DevDocs/script-system-macro-plan.md:113-126",
+      "note": "Stack effect not tabulated."
+    },
+    {
+      "name": "GetTicketValue",
+      "group": "road-vehicle",
+      "evidence": "hyp",
+      "source": "OMX DevDocs/script-system-macro-plan.md:113-126",
+      "note": "Stack effect not tabulated."
+    },
+    {
+      "name": "STNewTex",
+      "group": "script-texture",
+      "evidence": "corpus",
+      "source": "OMX ScriptTextureSet.cs:21-27 (order STRONG, 0x7BB224)"
+    },
+    {
+      "name": "STLock",
+      "group": "script-texture",
+      "evidence": "corpus",
+      "source": "OMX ScriptTextureSet.cs:21-27 (order STRONG, 0x7BB224)"
+    },
+    {
+      "name": "STUnlock",
+      "group": "script-texture",
+      "evidence": "corpus",
+      "source": "OMX ScriptTextureSet.cs:21-27 (order STRONG, 0x7BB224)"
+    },
+    {
+      "name": "STFilter",
+      "group": "script-texture",
+      "evidence": "corpus",
+      "source": "OMX ScriptTextureSet.cs:21-27 (order STRONG, 0x7BB224)"
+    },
+    {
+      "name": "STSetColor",
+      "group": "script-texture",
+      "evidence": "corpus",
+      "source": "OMX ScriptTextureSet.cs:21-27 (order STRONG, 0x7BB224)"
+    },
+    {
+      "name": "STDrawPixel",
+      "group": "script-texture",
+      "evidence": "corpus",
+      "source": "OMX ScriptTextureSet.cs:21-27 (order STRONG, 0x7BB224)"
+    },
+    {
+      "name": "STDrawRect",
+      "group": "script-texture",
+      "evidence": "corpus",
+      "source": "OMX ScriptTextureSet.cs:21-27 (order STRONG, 0x7BB224)"
+    },
+    {
+      "name": "STTextOut",
+      "group": "script-texture",
+      "evidence": "corpus",
+      "source": "OMX ScriptTextureSet.cs:21-27 (order STRONG, 0x7BB224)"
+    },
+    {
+      "name": "GetFontIndex",
+      "group": "script-texture",
+      "evidence": "corpus",
+      "source": "OMX ScriptTextureSet.cs:21-27 (order STRONG, 0x7BB224)"
+    },
+    {
+      "name": "TextLength",
+      "group": "script-texture",
+      "evidence": "corpus",
+      "source": "OMX ScriptTextureSet.cs:21-27 (order STRONG, 0x7BB224)"
+    },
+    {
+      "name": "STReadPixel",
+      "group": "script-texture",
+      "evidence": "corpus",
+      "source": "OMX ScriptTextureSet.cs:21-27 (order STRONG, 0x7BB224)"
+    },
+    {
+      "name": "STCopyColor",
+      "group": "script-texture",
+      "evidence": "corpus",
+      "source": "OMX ScriptTextureSet.cs:21-27 (order STRONG, 0x7BB224)"
+    },
+    {
+      "name": "STLoadTex",
+      "group": "script-texture",
+      "evidence": "corpus",
+      "source": "OMX ScriptTextureSet.cs:21-27 (order STRONG, 0x7BB224)"
+    },
+    {
+      "name": "STGetR",
+      "group": "script-texture",
+      "evidence": "corpus",
+      "source": "OMX ScriptTextureSet.cs:21-27 (order STRONG, 0x7BB224)"
+    },
+    {
+      "name": "STGetG",
+      "group": "script-texture",
+      "evidence": "corpus",
+      "source": "OMX ScriptTextureSet.cs:21-27 (order STRONG, 0x7BB224)"
+    },
+    {
+      "name": "STGetB",
+      "group": "script-texture",
+      "evidence": "corpus",
+      "source": "OMX ScriptTextureSet.cs:21-27 (order STRONG, 0x7BB224)"
+    },
+    {
+      "name": "STGetA",
+      "group": "script-texture",
+      "evidence": "corpus",
+      "source": "OMX ScriptTextureSet.cs:21-27 (order STRONG, 0x7BB224)"
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "OMSI Script",
+  "scopeName": "source.osc",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#string" },
+    { "include": "#directive" },
+    { "include": "#access" },
+    { "include": "#stackdump" },
+    { "include": "#string-op" },
+    { "include": "#number" },
+    { "include": "#operator" }
+  ],
+  "repository": {
+    "comment": {
+      "comment": "OMSI only treats a line as a comment when the apostrophe is the first character (IDA: 0x5D202D-0x5D2044, ingestion audit SI19).",
+      "name": "comment.line.apostrophe.osc",
+      "match": "^'.*$"
+    },
+    "string": {
+      "name": "string.quoted.double.osc",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [{ "match": "[^\"]+", "name": "string.quoted.double.osc" }]
+    },
+    "directive": {
+      "patterns": [
+        {
+          "match": "(\\{)(init|frame_ai|frame)(\\})",
+          "captures": {
+            "1": { "name": "punctuation.definition.directive.osc" },
+            "2": { "name": "keyword.control.entry.osc" },
+            "3": { "name": "punctuation.definition.directive.osc" }
+          }
+        },
+        {
+          "match": "(\\{)(macro|trigger)(:)([^}\\s]*)(\\})",
+          "captures": {
+            "1": { "name": "punctuation.definition.directive.osc" },
+            "2": { "name": "keyword.control.entry.osc" },
+            "3": { "name": "punctuation.separator.osc" },
+            "4": { "name": "entity.name.function.osc" },
+            "5": { "name": "punctuation.definition.directive.osc" }
+          }
+        },
+        {
+          "match": "(\\{)(if|else|endif|end)(\\})",
+          "captures": {
+            "1": { "name": "punctuation.definition.directive.osc" },
+            "2": { "name": "keyword.control.flow.osc" },
+            "3": { "name": "punctuation.definition.directive.osc" }
+          }
+        },
+        {
+          "match": "\\{[^}\\s]*\\}",
+          "name": "invalid.illegal.directive.osc"
+        }
+      ]
+    },
+    "access": {
+      "comment": "(Kind.Scope.name). Names may contain dots and parentheses, e.g. Font_(8-1)x3, so the name is matched lazily up to the closing paren at depth 0.",
+      "patterns": [
+        {
+          "match": "(\\()([LSCFMT])(\\.)([L$SVF])(\\.)((?:[^()\\s]|\\([^()\\s]*\\))*)(\\))",
+          "captures": {
+            "1": { "name": "punctuation.definition.access.osc" },
+            "2": { "name": "storage.type.access-kind.osc" },
+            "3": { "name": "punctuation.separator.osc" },
+            "4": { "name": "storage.modifier.access-scope.osc" },
+            "5": { "name": "punctuation.separator.osc" },
+            "6": { "name": "variable.other.osc" },
+            "7": { "name": "punctuation.definition.access.osc" }
+          }
+        },
+        {
+          "match": "\\([^)\\s]*\\)",
+          "name": "invalid.illegal.access.osc"
+        }
+      ]
+    },
+    "stackdump": {
+      "match": "%stackdump%",
+      "name": "support.function.debug.osc"
+    },
+    "string-op": {
+      "match": "(?<![^\\s])\\$[A-Za-z]*[+*<>=]*(?![^\\s])",
+      "name": "support.function.string.osc"
+    },
+    "number": {
+      "match": "(?<![^\\s])[-+]?(?:\\d+\\.?\\d*|\\.\\d+)(?![^\\s])",
+      "name": "constant.numeric.osc"
+    },
+    "operator": {
+      "match": "(?<![^\\s])(?:/-/|<=|>=|&&|\\|\\||[-+*/%=<>!]|[sl]\\d+|d|min|max|abs|sqrt|sqr|exp|ln|sgn|sign|trunc|frac|round|sin|cos|tan|arcsin|arccos|arctan|pi|random)(?![^\\s])",
+      "name": "keyword.operator.osc"
+    }
+  }
+}
