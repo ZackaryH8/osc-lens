@@ -13,7 +13,9 @@ export interface ProjectInfo {
   /** Keys: var:<name>, str:<name>, const:<name>, curve:<name> (lower-case). First definition wins, as in OMSI. */
   declarations: Map<string, Decl>;
   /** Exact-case sound trigger names from the vehicle's sound cfg [trigger] entries. */
-  soundTriggers: Map<string, string>;
+  soundTriggers: Map<string, Decl>;
+  /** {macro:name} definitions across the vehicle's scripts; the textually last one wins, as in OMSI. */
+  macroDecls: Map<string, Decl>;
   /** Names passed to (T.L.x)/(T.F.x) in the vehicle's scripts. */
   usedTriggers: Set<string>;
   soundRead: boolean;
@@ -108,10 +110,10 @@ function declareNames(path: string | undefined, kind: 'var' | 'str', into: Set<s
   });
 }
 
-function soundTriggersOf(path: string | undefined, into: Map<string, string>): boolean {
+function soundTriggersOf(path: string | undefined, into: Map<string, Decl>): boolean {
   if (!path || !existsSync(path)) return false;
   const raw = lines(path).map((l) => l.trim());
-  for (let i = 0; i < raw.length; i++) if (/^\[trigger\]$/i.test(raw[i]) && raw[i + 1]) into.set(raw[i + 1], path);
+  for (let i = 0; i < raw.length; i++) if (/^\[trigger\]$/i.test(raw[i]) && raw[i + 1] && !into.has(raw[i + 1])) into.set(raw[i + 1], { file: path, line: i + 1 });
   return true;
 }
 
@@ -156,25 +158,30 @@ function buildProject(owner: string, dir: string, sections: Record<string, strin
   const stringVariables = new Set<string>();
   const constants = new Set<string>();
   const curves = new Set<string>();
+  const declarations = new Map<string, Decl>();
   const isVehicle = /\.(bus|ovh)$/i.test(entry);
   let variablesComplete = !isVehicle;
   let stringVariablesComplete = !isVehicle;
   if (isVehicle && omsiPath) {
     const builtIn = resolveCI(omsiPath, 'program/varlist_roadvehicle.txt');
     const builtInStr = resolveCI(omsiPath, 'program/stringvarlist_roadvehicle.txt');
-    if (builtIn && existsSync(builtIn)) { names(builtIn).forEach((n) => variables.add(n.toLowerCase())); variablesComplete = true; } else missing.push('program/varlist_roadvehicle.txt (under oscLens.omsiPath)');
-    if (builtInStr && existsSync(builtInStr)) { names(builtInStr).forEach((n) => stringVariables.add(n.toLowerCase())); stringVariablesComplete = true; } else missing.push('program/stringvarlist_roadvehicle.txt (under oscLens.omsiPath)');
+    if (builtIn && existsSync(builtIn)) { declareNames(builtIn, 'var', variables, declarations); variablesComplete = true; } else missing.push('program/varlist_roadvehicle.txt (under oscLens.omsiPath)');
+    if (builtInStr && existsSync(builtInStr)) { declareNames(builtInStr, 'str', stringVariables, declarations); stringVariablesComplete = true; } else missing.push('program/stringvarlist_roadvehicle.txt (under oscLens.omsiPath)');
   }
-  const declarations = new Map<string, Decl>();
   for (const p of sections.varnamelist ?? []) declareNames(found(p), 'var', variables, declarations);
   for (const p of sections.stringvarnamelist ?? []) declareNames(found(p), 'str', stringVariables, declarations);
   for (const p of sections.constfile ?? []) parseConst(found(p), constants, curves, declarations);
-  const soundTriggers = new Map<string, string>();
+  const soundTriggers = new Map<string, Decl>();
   let soundRead = false;
   for (const p of [...(sections.sound ?? []), ...(sections.sound_ai ?? [])]) soundRead = soundTriggersOf(resolveCI(dir, p), soundTriggers) || soundRead;
   const usedTriggers = new Set<string>();
   scripts.forEach((p) => triggerUses(p, usedTriggers));
 
+  const macroDecls = new Map<string, Decl>();
+  for (const p of scripts) {
+    if (!existsSync(p)) continue;
+    for (const t of tokenize(read(p))) if (t.text.startsWith('{macro:') && t.text.endsWith('}')) macroDecls.set(t.text.slice(7, -1).toLowerCase(), { file: p, line: t.line });
+  }
   const earlierMacros = new Set<string>();
   const laterMacros = new Set<string>();
   scripts.forEach((p, i) => {
@@ -189,7 +196,7 @@ function buildProject(owner: string, dir: string, sections: Record<string, strin
   }
   // A varlist we could not read means the table is not known in full: do not guess.
   if (missing.some((m) => !m.startsWith('program/'))) { variablesComplete = false; stringVariablesComplete = false; }
-  return { used, declarations, soundTriggers, usedTriggers, soundRead, missing, owner, scripts, index, variables, stringVariables, constants, curves, earlierMacros, laterMacros, variablesComplete, stringVariablesComplete, callbacks };
+  return { macroDecls, used, declarations, soundTriggers, usedTriggers, soundRead, missing, owner, scripts, index, variables, stringVariables, constants, curves, earlierMacros, laterMacros, variablesComplete, stringVariablesComplete, callbacks };
 }
 
 /** Finds the .bus/.ovh/.sco that lists this script and gathers what it declares. */

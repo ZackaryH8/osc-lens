@@ -198,3 +198,18 @@ test('declaration files suggest names scripts use but nothing declares', () => {
   assert.deepEqual(labels('constfile', '[newcurve]\n', 1), ['NewCurve']);
   assert.ok(labels('constfile', '[const]\nX\n1\n', 3).includes('[pnt]'));
 });
+
+test('declaration index covers built-ins, macros across scripts and sound triggers', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'osc-lens-'));
+  mkdirSync(join(dir, 'program')); mkdirSync(join(dir, 'veh', 'sound'), { recursive: true });
+  writeFileSync(join(dir, 'program', 'varlist_roadvehicle.txt'), 'elec_busbar_main\n');
+  writeFileSync(join(dir, 'program', 'stringvarlist_roadvehicle.txt'), 'ident\n');
+  writeFileSync(join(dir, 'veh', 'v.bus'), '[script]\n2\na.osc\nb.osc\n[sound]\nsound\\s.cfg\n');
+  writeFileSync(join(dir, 'veh', 'a.osc'), '{macro:one} {end}');
+  writeFileSync(join(dir, 'veh', 'b.osc'), '{macro:two} {end}');
+  writeFileSync(join(dir, 'veh', 'sound', 's.cfg'), '[trigger]\nev_a\n');
+  const p = loadProject(join(dir, 'veh', 'a.osc'), dir)!;
+  assert.equal(p.declarations.get('var:elec_busbar_main')?.line, 0);
+  assert.equal(p.macroDecls.get('two')?.file.endsWith('b.osc'), true);
+  assert.equal(p.soundTriggers.get('ev_a')?.line, 1);
+});

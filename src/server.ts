@@ -171,17 +171,32 @@ function declarationAt(uri: string, word: string) {
 
 connection.onDefinition(async (params) => {
   const doc = documents.get(params.textDocument.uri);
-  if (!doc) return null;
+  if (!doc || !/\.osc$/i.test(doc.uri)) return null;
   const line = doc.getText({ start: { line: params.position.line, character: 0 }, end: { line: params.position.line + 1, character: 0 } });
   const s = await settings(doc.uri);
   for (const m of line.matchAll(/\S+/g)) {
     const start = m.index ?? 0;
     if (params.position.character < start || params.position.character > start + m[0].length) continue;
     const parts = DECL.exec(m[0]);
-    const key = parts ? declKey(parts[1], parts[2], parts[3]) : undefined;
-    const decl = key ? project(doc.uri, s)?.declarations.get(key) : undefined;
-    if (!decl) return null;
-    return { uri: pathToFileURL(decl.file).toString(), range: { start: { line: decl.line, character: 0 }, end: { line: decl.line, character: 1000 } } };
+    if (!parts) return null;
+    const [, x, y, name] = parts;
+    const lower = name.toLowerCase();
+    const proj = project(doc.uri, s);
+    const at = (file: string, ln: number) => ({ uri: pathToFileURL(file).toString(), range: { start: { line: ln, character: 0 }, end: { line: ln, character: 1000 } } });
+    if (x === 'M' && y === 'L') {
+      // Prefer a definition in the text being edited (it may be unsaved), else the vehicle's other scripts.
+      const here = analyze(doc.getText()).nodes.filter((n) => n.kind === 'macro-def' && n.name!.toLowerCase() === lower).pop();
+      if (here) return { uri: doc.uri, range: { start: { line: here.token.line, character: here.token.col }, end: { line: here.token.endLine, character: here.token.endCol } } };
+      const d = proj?.macroDecls.get(lower);
+      return d ? at(d.file, d.line) : null;
+    }
+    if (x === 'T') {
+      const d = proj ? [...proj.soundTriggers].find(([k]) => k === name)?.[1] : undefined;
+      return d ? at(d.file, d.line) : null;
+    }
+    const key = declKey(x, y, name);
+    const d = key ? proj?.declarations.get(key) : undefined;
+    return d ? at(d.file, d.line) : null;
   }
   return null;
 });
