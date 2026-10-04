@@ -115,6 +115,12 @@ export function analyze(text: string, options: AnalyzeOptions = {}): Analysis {
       } else {
         add(n, 'unknown-macro', 'info', 'ida', `Macro '${name}' is not defined later in this file; it must come from a later script file.`);
       }
+    } else if (x === 'T') {
+      if (project?.soundRead && !project.soundTriggers.has(name)) {
+        const near = [...project.soundTriggers.keys()].find((k) => k.toLowerCase() === lower);
+        if (near) add(n, 'trigger-case', 'warning', 'ida', `Sound trigger names are matched exactly and case-sensitively; the sound cfg has '${near}', so this one never plays (RE/omsi-2.3-vehicle-sound-system.md).`);
+        else add(n, 'unknown-sound-trigger', 'info', 'hyp', `'${name}' is not a [trigger] in this vehicle's sound cfg. It only matters if no other sound pack listens for it.`);
+      }
     } else if (x === 'M' && y === 'V') {
       const known = language.callbackSet.has(lower) || project?.callbacks?.has(lower);
       if (!known) add(n, 'unknown-callback', 'warning', 'hyp', `'${name}' is not a known engine callback (list is incomplete).`);

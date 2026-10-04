@@ -120,3 +120,55 @@ test('an unreadable varlist turns undeclared-variable checks off and says so', (
   const project = loadProject(join(dir, 'm.osc'), dir)!;
   assert.deepEqual(codes('{macro:a} (L.L.whatever) {end}', { project }), ['project-incomplete']);
 });
+
+import { analyzeConstfile, analyzeVarlist, parseConstText } from '../src/core/declfiles';
+import { complete } from '../src/core/completion';
+import { loadLanguage } from '../src/core/language';
+import { findRole } from '../src/core/project';
+
+const fc = (list: { code: string }[]) => list.map((f) => f.code);
+
+test('varlist checks', () => {
+  assert.deepEqual(fc(analyzeVarlist('a\n\nb\nA\nc d\ne \n', new Set(['b']))), ['shadows-builtin', 'dup-declaration', 'unusable-name', 'padded-name']);
+  assert.deepEqual(fc(analyzeVarlist('')), []);
+});
+
+test('constfile checks and tolerant parsing', () => {
+  assert.deepEqual(fc(analyzeConstfile('')), []);
+  const text = '[pnt]\n1\n2\n[const]\nK\n1\n[const]\nk\n2\n[newcurve]\nc\n[pnt]\n0 0\n[pnt]\n5\n6\n[pnt]\n3 3\n[const]\nbad\nxyz\n';
+  assert.deepEqual(fc(analyzeConstfile(text)), ['pnt-before-newcurve', 'bad-value', 'dup-constant', 'curve-order']);
+  assert.deepEqual(parseConstText(text).curves[0].points, [[0, 0], [5, 6], [3, 3]]);
+});
+
+test('constants and curves: first definition wins and values are indexed', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'osc-lens-'));
+  writeFileSync(join(dir, 'v.bus'), '[script]\n1\nm.osc\n[constfile]\n1\nc.txt\n');
+  writeFileSync(join(dir, 'c.txt'), '[const]\nK\n1\n[const]\nK\n2\n');
+  writeFileSync(join(dir, 'm.osc'), '1');
+  const project = loadProject(join(dir, 'm.osc'))!;
+  assert.equal(project.declarations.get('const:k')?.value, 1);
+});
+
+test('files are recognised by what the .bus references, whatever they are called', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'osc-lens-'));
+  writeFileSync(join(dir, 'v.bus'), '[script]\n1\nm.osc\n[varnamelist]\n1\nMy_Vars.TXT\n[stringvarnamelist]\n1\nstr.cfg\n[constfile]\n1\nconsts.txt\n');
+  for (const f of ['m.osc', 'my_vars.txt', 'str.cfg', 'consts.txt', 'other.txt']) writeFileSync(join(dir, f), '');
+  assert.equal(findRole(join(dir, 'my_vars.txt'))?.role, 'varlist');
+  assert.equal(findRole(join(dir, 'str.cfg'))?.role, 'stringvarlist');
+  assert.equal(findRole(join(dir, 'consts.txt'))?.role, 'constfile');
+  assert.equal(findRole(join(dir, 'other.txt')), undefined);
+});
+
+test('(T.L.) completes SOUND triggers, not {trigger:} blocks, and checks case', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'osc-lens-'));
+  mkdirSync(join(dir, 'sound'));
+  writeFileSync(join(dir, 'v.bus'), '[script]\n1\nm.osc\n[sound]\nsound\\sound.cfg\n');
+  writeFileSync(join(dir, 'sound', 'sound.cfg'), '[sound]\nhorn.wav\n[trigger]\nev_hupe_an\n');
+  writeFileSync(join(dir, 'm.osc'), '{trigger:horn} (T.L.ev_used_only) {end}');
+  const project = loadProject(join(dir, 'm.osc'))!;
+  assert.ok(project.soundRead);
+  const labels = complete('(T.L.', { language: loadLanguage(), project, macros: [], triggers: ['horn'] }).map((i) => i.label);
+  assert.ok(labels.includes('(T.L.ev_hupe_an)') && labels.includes('(T.L.ev_used_only)') && labels.includes('(T.L.ev_AI_Horn)'));
+  assert.ok(!labels.includes('(T.L.horn)'));
+  assert.deepEqual(codes('{macro:a} (T.L.ev_hupe_an) (T.L.EV_HUPE_AN) (T.L.nope) {end}', { project }), ['trigger-case', 'unknown-sound-trigger']);
+});

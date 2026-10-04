@@ -73,7 +73,10 @@
   },
   "main": "./out/src/client.js",
   "activationEvents": [
-    "onLanguage:osc"
+    "onLanguage:osc",
+    "workspaceContains:**/*.bus",
+    "workspaceContains:**/*.ovh",
+    "workspaceContains:**/*.sco"
   ],
   "devDependencies": {
     "@types/node": "^22.0.0",

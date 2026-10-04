@@ -3,6 +3,9 @@ import { ProjectInfo } from './project';
 
 export interface Item { label: string; detail?: string; documentation?: string; kind: 'operator' | 'keyword' | 'variable' | 'function' | 'constant' | 'snippet' }
 
+/** Triggers OMSI itself raises on vehicles (RE/omsi-2.3-vehicle-sound-system.md section 6, PROVEN). */
+const ENGINE_RAISED = ['ev_AI_Horn', 'ev_Stamper'];
+
 const tag = (evidence: string) => `[${evidence}]`;
 
 export interface Context { language: Language; project?: ProjectInfo; macros: string[]; triggers: string[] }
@@ -34,7 +37,14 @@ export function complete(prefix: string, ctx: Context): Item[] {
     if (x === 'F') return set(project?.curves, 'function', 'curve');
     if (x === 'M' && y === 'L') return set(new Set([...ctx.macros, ...(project?.laterMacros ?? [])]), 'function', 'macro (must be defined later in the text)');
     if (x === 'M' && y === 'V') return language.callbacks.map((c) => name(c.name, 'function', `${c.group ?? 'callback'} ${tag(c.evidence)}`, c.note));
-    if (x === 'T') return ctx.triggers.map((t) => name(t, 'function', 'trigger'));
+    if (x === 'T') {
+      // (T.L.x) raises a SOUND trigger (matched by [trigger] in the sound cfg), not a {trigger:} block.
+      const out = new Map<string, string>();
+      for (const t of ENGINE_RAISED) out.set(t, 'raised by the engine');
+      for (const t of project?.usedTriggers ?? []) out.set(t, 'used in this vehicle\'s scripts');
+      for (const t of project?.soundTriggers.keys() ?? []) out.set(t, 'sound cfg [trigger]');
+      return [...out].map(([t, why]) => name(t, 'function', `sound trigger - ${why}`));
+    }
     return [];
   }
   if (prefix.startsWith('{')) {

@@ -1,8 +1,20 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { tokenize } from './lexer';
+import { parseConstText } from './declfiles';
+
+export interface Decl { file: string; line: number; value?: number; points?: [number, number][] }
+
+export type Role = 'varlist' | 'stringvarlist' | 'constfile';
 
 export interface ProjectInfo {
+  /** Keys: var:<name>, str:<name>, const:<name>, curve:<name> (lower-case). First definition wins, as in OMSI. */
+  declarations: Map<string, Decl>;
+  /** Exact-case sound trigger names from the vehicle's sound cfg [trigger] entries. */
+  soundTriggers: Map<string, string>;
+  /** Names passed to (T.L.x)/(T.F.x) in the vehicle's scripts. */
+  usedTriggers: Set<string>;
+  soundRead: boolean;
   owner: string;
   scripts: string[];
   index: number;
@@ -55,6 +67,8 @@ export function parseOwner(path: string): Record<string, string[]> {
   const result: Record<string, string[]> = {};
   const raw = lines(path).map((l) => l.trim());
   for (let i = 0; i < raw.length; i++) {
+    const single = /^\[(sound|sound_ai)\]$/i.exec(raw[i]);
+    if (single && raw[i + 1]) { (result[single[1].toLowerCase()] ??= []).push(raw[i + 1]); i += 1; continue; }
     const m = /^\[(script|varnamelist|stringvarnamelist|constfile)\]$/i.exec(raw[i]);
     if (!m) continue;
     const key = m[1].toLowerCase();
@@ -67,13 +81,43 @@ export function parseOwner(path: string): Record<string, string[]> {
   return result;
 }
 
-function parseConst(path: string | undefined, constants: Set<string>, curves: Set<string>): void {
+function parseConst(path: string | undefined, constants: Set<string>, curves: Set<string>, decls: Map<string, Decl>): void {
   if (!path || !existsSync(path)) return;
+  const data = parseConstText(read(path));
+  for (const c of data.consts) {
+    const k = c.name.toLowerCase();
+    constants.add(k);
+    if (!decls.has(`const:${k}`)) decls.set(`const:${k}`, { file: path, line: c.line, value: c.value });
+  }
+  for (const c of data.curves) {
+    const k = c.name.toLowerCase();
+    curves.add(k);
+    if (!decls.has(`curve:${k}`)) decls.set(`curve:${k}`, { file: path, line: c.line, points: c.points });
+  }
+}
+
+function declareNames(path: string | undefined, kind: 'var' | 'str', into: Set<string>, decls: Map<string, Decl>): void {
+  if (!path || !existsSync(path)) return;
+  lines(path).forEach((raw, line) => {
+    const n = raw.trim();
+    if (n === '') return;
+    into.add(n.toLowerCase());
+    if (!decls.has(`${kind}:${n.toLowerCase()}`)) decls.set(`${kind}:${n.toLowerCase()}`, { file: path, line });
+  });
+}
+
+function soundTriggersOf(path: string | undefined, into: Map<string, string>): boolean {
+  if (!path || !existsSync(path)) return false;
   const raw = lines(path).map((l) => l.trim());
-  for (let i = 0; i < raw.length; i++) {
-    const tag = raw[i].toLowerCase();
-    if (tag === '[const]' && raw[i + 1]) constants.add(raw[i + 1].toLowerCase());
-    else if (tag === '[newcurve]' && raw[i + 1]) curves.add(raw[i + 1].toLowerCase());
+  for (let i = 0; i < raw.length; i++) if (/^\[trigger\]$/i.test(raw[i]) && raw[i + 1]) into.set(raw[i + 1], path);
+  return true;
+}
+
+function triggerUses(path: string | undefined, into: Set<string>): void {
+  if (!path || !existsSync(path)) return;
+  for (const t of tokenize(read(path))) {
+    const m = /^\(T\.[LF]\.(.+)\)$/.exec(t.text);
+    if (m) into.add(m[1]);
   }
 }
 
@@ -115,9 +159,15 @@ export function loadProject(scriptPath: string, omsiPath?: string): ProjectInfo 
         if (builtIn && existsSync(builtIn)) { names(builtIn).forEach((n) => variables.add(n.toLowerCase())); variablesComplete = true; } else missing.push('program/varlist_roadvehicle.txt (under oscLens.omsiPath)');
         if (builtInStr && existsSync(builtInStr)) { names(builtInStr).forEach((n) => stringVariables.add(n.toLowerCase())); stringVariablesComplete = true; } else missing.push('program/stringvarlist_roadvehicle.txt (under oscLens.omsiPath)');
       }
-      for (const p of sections.varnamelist ?? []) names(found(p)).forEach((n) => variables.add(n.toLowerCase()));
-      for (const p of sections.stringvarnamelist ?? []) names(found(p)).forEach((n) => stringVariables.add(n.toLowerCase()));
-      for (const p of sections.constfile ?? []) parseConst(found(p), constants, curves);
+      const declarations = new Map<string, Decl>();
+      for (const p of sections.varnamelist ?? []) declareNames(found(p), 'var', variables, declarations);
+      for (const p of sections.stringvarnamelist ?? []) declareNames(found(p), 'str', stringVariables, declarations);
+      for (const p of sections.constfile ?? []) parseConst(found(p), constants, curves, declarations);
+      const soundTriggers = new Map<string, string>();
+      let soundRead = false;
+      for (const p of [...(sections.sound ?? []), ...(sections.sound_ai ?? [])]) soundRead = soundTriggersOf(resolveCI(dir, p), soundTriggers) || soundRead;
+      const usedTriggers = new Set<string>();
+      scripts.forEach((p) => triggerUses(p, usedTriggers));
 
       const earlierMacros = new Set<string>();
       const laterMacros = new Set<string>();
@@ -133,10 +183,39 @@ export function loadProject(scriptPath: string, omsiPath?: string): ProjectInfo 
       }
       // A varlist we could not read means the table is not known in full: do not guess.
       if (missing.some((m) => !m.startsWith('program/'))) { variablesComplete = false; stringVariablesComplete = false; }
-      return { missing, owner, scripts, index, variables, stringVariables, constants, curves, earlierMacros, laterMacros, variablesComplete, stringVariablesComplete, callbacks };
+      return { declarations, soundTriggers, usedTriggers, soundRead, missing, owner, scripts, index, variables, stringVariables, constants, curves, earlierMacros, laterMacros, variablesComplete, stringVariablesComplete, callbacks };
     }
   }
   return undefined;
 }
 
 export const ownerName = (p: ProjectInfo): string => basename(p.owner);
+
+/** Which declaration role (if any) a file plays for the .bus/.ovh/.sco that references it. */
+export function findRole(filePath: string): { role: Role; owner: string } | undefined {
+  const target = norm(filePath);
+  let dir = dirname(resolve(filePath));
+  for (let depth = 0; depth < 5; depth++, dir = dirname(dir)) {
+    let entries: string[] = [];
+    try { entries = readdirSync(dir); } catch { continue; }
+    for (const entry of entries.filter((e) => /\.(bus|ovh|sco)$/i.test(e))) {
+      const owner = join(dir, entry);
+      const sections = parseOwner(owner);
+      const roles: [Role, string[] | undefined][] = [['varlist', sections.varnamelist], ['stringvarlist', sections.stringvarnamelist], ['constfile', sections.constfile]];
+      for (const [role, list] of roles) {
+        for (const p of list ?? []) {
+          const hit = resolveCI(dir, p);
+          if (hit && norm(hit) === target) return { role, owner };
+        }
+      }
+    }
+  }
+  return undefined;
+}
+
+/** program\varlist_roadvehicle.txt (or the string list) as a lower-case set, if present. */
+export function builtInNames(omsiPath: string | undefined, kind: 'var' | 'str'): Set<string> | undefined {
+  if (!omsiPath) return undefined;
+  const file = resolveCI(omsiPath, `program/${kind === 'var' ? '' : 'string'}varlist_roadvehicle.txt`);
+  return file && existsSync(file) ? new Set(names(file).map((n) => n.toLowerCase())) : undefined;
+}

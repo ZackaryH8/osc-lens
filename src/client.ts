@@ -11,7 +11,8 @@ export function activate(context: ExtensionContext): void {
     debug: { module, transport: TransportKind.ipc, options: { execArgv: ['--nolazy', '--inspect=6009'] } },
   };
   const clientOptions: LanguageClientOptions = {
-    documentSelector: [{ scheme: 'file', language: 'osc' }],
+    // .txt files are only acted on when a .bus/.ovh/.sco references them as a varlist or constfile.
+    documentSelector: [{ scheme: 'file', language: 'osc' }, { scheme: 'file', pattern: '**/*.txt' }],
     synchronize: { configurationSection: 'oscLens' },
   };
   client = new LanguageClient('oscLens', 'OSC Lens', serverOptions, clientOptions);
