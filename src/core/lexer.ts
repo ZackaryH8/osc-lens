@@ -7,7 +7,7 @@ export interface Token {
 }
 
 /**
- * Splits script text the way OMSI does (sub_5D1E68, see RE/omsi-2.3-script-compiler.md):
+ * Splits script text the way OMSI does (sub_5D1E68, see docs/script-compiler.md):
  * a line is dropped when empty or when its FIRST character is an apostrophe; the rest is one
  * stream in which only space or tab outside double quotes separates tokens. No brace or
  * parenthesis awareness. Quote state carries across lines.

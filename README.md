@@ -4,7 +4,7 @@
 
 Editor support for **OMSI 2** `.osc` scripts, their varlists and constfiles. The checks are not
 guesses about the language: they follow what `Omsi.exe`'s script compiler does, taken from
-reverse engineering notes in [`RE/omsi-2.3-script-compiler.md`](https://github.com/ZackaryH8/OMSI.MP/blob/master/RE/omsi-2.3-script-compiler.md).
+reverse engineering notes in [`docs/script-compiler.md`](docs/script-compiler.md).
 
 ## What you get
 
@@ -24,7 +24,7 @@ reverse engineering notes in [`RE/omsi-2.3-script-compiler.md`](https://github.c
 ## Install
 
 Download `osc-lens-<version>.vsix` from the
-[Releases](https://github.com/ZackaryH8/OMSI.MP/releases) page, then:
+[Releases](https://github.com/ZackaryH8/osc-lens/releases) page, then:
 
 ```
 code --install-extension osc-lens-<version>.vsix
@@ -73,13 +73,12 @@ engine and stock scripts; `hyp` is unverified. A `hyp` finding is never an error
 ## Development
 
 ```
-cd osc-lens
 npm install
 npm test          # data check, compile, unit tests
 npm run package   # bundle, smoke-test the bundled server, build the .vsix
 ```
 
-Press F5 in VS Code from this folder to launch an Extension Development Host. The language data
+Press F5 in VS Code from the repository root to launch an Extension Development Host. The language data
 that drives everything lives in [`data/osc-language.json`](data/osc-language.json); every entry
 carries its evidence tag and a source.
 

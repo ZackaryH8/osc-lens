@@ -22,7 +22,7 @@ export interface Node {
 
 const ENTRY = new Set(['{init}', '{frame}', '{frame_ai}']);
 
-/** Mirrors the order of tests in sub_5D1E68 (RE/omsi-2.3-script-compiler.md section 2). */
+/** Mirrors the order of tests in sub_5D1E68 (docs/script-compiler.md section 2). */
 export function classify(token: Token, language: Language): Node {
   const t = token.text;
   const node = (kind: Kind, extra: Partial<Node> = {}): Node => ({ kind, token, ...extra });

@@ -30,7 +30,7 @@ export interface Analysis {
   triggers: string[];
 }
 
-const NODE_RULE = 'RE/omsi-2.3-script-compiler.md';
+const NODE_RULE = 'docs/script-compiler.md';
 
 export function analyze(text: string, options: AnalyzeOptions = {}): Analysis {
   const language = options.language ?? loadLanguage();

@@ -127,14 +127,13 @@
     "name": "ZackaryH8"
   },
   "icon": "images/icon.png",
-  "homepage": "https://github.com/ZackaryH8/OMSI.MP/tree/master/osc-lens#readme",
+  "homepage": "https://github.com/ZackaryH8/osc-lens#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ZackaryH8/OMSI.MP.git",
-    "directory": "osc-lens"
+    "url": "https://github.com/ZackaryH8/osc-lens.git"
   },
   "bugs": {
-    "url": "https://github.com/ZackaryH8/OMSI.MP/issues"
+    "url": "https://github.com/ZackaryH8/osc-lens/issues"
   },
   "keywords": [
     "omsi",

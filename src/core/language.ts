@@ -19,7 +19,7 @@ export interface LanguageData {
 }
 
 export interface Language extends LanguageData {
-  /** Case-sensitive, as OMSI compares them (RE/omsi-2.3-script-compiler.md). */
+  /** Case-sensitive, as OMSI compares them (docs/script-compiler.md). */
   operatorByToken: Map<string, OperatorInfo>;
   /** Tokens the exe does not compile as operators but OMX does. */
   suspectOperators: Set<string>;
