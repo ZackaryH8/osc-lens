@@ -23,6 +23,30 @@
           ".osc"
         ],
         "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "osc-constfile",
+        "aliases": [
+          "OMSI Constfile"
+        ],
+        "filenamePatterns": [
+          "*constfile*.txt",
+          "*Constfile*.txt",
+          "*CONSTFILE*.txt",
+          "*_const.txt",
+          "*consts.txt"
+        ]
+      },
+      {
+        "id": "osc-varlist",
+        "aliases": [
+          "OMSI Varlist"
+        ],
+        "filenamePatterns": [
+          "*varlist*.txt",
+          "*Varlist*.txt",
+          "*VARLIST*.txt"
+        ]
       }
     ],
     "grammars": [
@@ -30,6 +54,16 @@
         "language": "osc",
         "scopeName": "source.osc",
         "path": "./syntaxes/osc.tmLanguage.json"
+      },
+      {
+        "language": "osc-constfile",
+        "scopeName": "source.osc-constfile",
+        "path": "./syntaxes/osc-constfile.tmLanguage.json"
+      },
+      {
+        "language": "osc-varlist",
+        "scopeName": "source.osc-varlist",
+        "path": "./syntaxes/osc-varlist.tmLanguage.json"
       }
     ],
     "configuration": {
@@ -76,7 +110,9 @@
     "onLanguage:osc",
     "workspaceContains:**/*.bus",
     "workspaceContains:**/*.ovh",
-    "workspaceContains:**/*.sco"
+    "workspaceContains:**/*.sco",
+    "onLanguage:osc-constfile",
+    "onLanguage:osc-varlist"
   ],
   "devDependencies": {
     "@types/node": "^22.0.0",

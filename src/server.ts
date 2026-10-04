@@ -1,18 +1,20 @@
 import { fileURLToPath } from 'node:url';
 import {
   createConnection, ProposedFeatures, TextDocuments, TextDocumentSyncKind, DiagnosticSeverity,
-  CompletionItemKind, MarkupKind, Diagnostic, CompletionItem, Hover,
+  CompletionItemKind, InsertTextFormat, MarkupKind, Diagnostic, CompletionItem, Hover, SemanticTokensBuilder,
 } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { analyze, Severity } from './core/analyze';
 import { complete } from './core/completion';
 import { loadLanguage } from './core/language';
-import { analyzeConstfile, analyzeVarlist } from './core/declfiles';
-import { builtInNames, findRole, loadProject, ProjectInfo } from './core/project';
+import { analyzeConstfile, analyzeVarlist, completeDecl, semanticTokensConst, semanticTokensVarlist } from './core/declfiles';
+import { builtInNames, findRole, loadOwnerProject, loadProject, ProjectInfo } from './core/project';
 import { pathToFileURL } from 'node:url';
 
 interface Settings { omsiPath?: string; stackAnalysis: boolean; disabledRules: string[] }
 const defaults: Settings = { stackAnalysis: false, disabledRules: [] };
+
+const TOKEN_TYPES = ['keyword', 'variable', 'number', 'function', 'comment'] as const;
 
 const connection = createConnection(ProposedFeatures.all);
 const documents = new TextDocuments(TextDocument);
@@ -27,6 +29,7 @@ connection.onInitialize((params) => {
       completionProvider: { triggerCharacters: ['(', '.', '{', '$'] },
       hoverProvider: true,
       definitionProvider: true,
+      semanticTokensProvider: { legend: { tokenTypes: [...TOKEN_TYPES], tokenModifiers: ['readonly'] }, full: true },
     },
   };
 });
@@ -81,10 +84,41 @@ function tokenPrefix(doc: TextDocument, line: number, character: number): string
 
 const itemKind = { operator: CompletionItemKind.Operator, keyword: CompletionItemKind.Keyword, variable: CompletionItemKind.Variable, function: CompletionItemKind.Function, constant: CompletionItemKind.Constant, snippet: CompletionItemKind.Snippet } as const;
 
+function declRole(uri: string) {
+  if (/\.osc$/i.test(uri)) return undefined;
+  try { return findRole(fileURLToPath(uri)); } catch { return undefined; }
+}
+
+connection.languages.semanticTokens.on((params) => {
+  const builder = new SemanticTokensBuilder();
+  const doc = documents.get(params.textDocument.uri);
+  const role = doc ? declRole(doc.uri) : undefined;
+  if (!doc || !role) return builder.build();
+  const tokens = role.role === 'constfile' ? semanticTokensConst(doc.getText()) : semanticTokensVarlist(doc.getText());
+  for (const t of tokens) builder.push(t.line, t.col, t.length, TOKEN_TYPES.indexOf(t.type), t.readonly ? 1 : 0);
+  return builder.build();
+});
+
 connection.onCompletion(async (params): Promise<CompletionItem[]> => {
   const doc = documents.get(params.textDocument.uri);
   if (!doc) return [];
   const s = await settings(doc.uri);
+  const role = declRole(doc.uri);
+  if (role) {
+    const p = loadOwnerProject(role.owner, s.omsiPath || undefined);
+    const lineText = doc.getText({ start: { line: params.position.line, character: 0 }, end: params.position });
+    return completeDecl(doc.getText(), params.position.line, lineText, {
+      role: role.role,
+      used: p.used,
+      declared: { var: p.variables, str: p.stringVariables, const: p.constants, curve: p.curves },
+      builtIns: builtInNames(s.omsiPath || undefined, role.role === 'stringvarlist' ? 'str' : 'var'),
+    }).map((i) => ({
+      label: i.label, detail: i.detail,
+      kind: i.snippet ? CompletionItemKind.Snippet : CompletionItemKind.Variable,
+      insertText: i.insertText ?? i.label,
+      insertTextFormat: i.snippet ? InsertTextFormat.Snippet : InsertTextFormat.PlainText,
+    }));
+  }
   const analysis = analyze(doc.getText(), { project: undefined });
   const prefix = tokenPrefix(doc, params.position.line, params.position.character);
   return complete(prefix, { language, project: project(doc.uri, s), macros: analysis.macros, triggers: analysis.triggers })

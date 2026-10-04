@@ -172,3 +172,29 @@ test('(T.L.) completes SOUND triggers, not {trigger:} blocks, and checks case', 
   assert.ok(!labels.includes('(T.L.horn)'));
   assert.deepEqual(codes('{macro:a} (T.L.ev_hupe_an) (T.L.EV_HUPE_AN) (T.L.nope) {end}', { project }), ['trigger-case', 'unknown-sound-trigger']);
 });
+
+import { completeDecl, semanticTokensConst, semanticTokensVarlist } from '../src/core/declfiles';
+import { loadOwnerProject } from '../src/core/project';
+
+test('constfile semantic tokens: tags, names, values, curves, prose', () => {
+  const text = 'Some prose\n[const]\nK\n1.5\n[newcurve]\nc\n[pnt]\n0 1\n[pnt]\n2\n3\n';
+  const t = semanticTokensConst(text).map((x) => `${x.line}:${x.type}${x.readonly ? '!' : ''}`);
+  assert.deepEqual(t, ['0:comment', '1:keyword', '2:variable!', '3:number', '4:keyword', '5:function', '6:keyword', '7:number', '7:number', '8:keyword', '9:number', '10:number']);
+  assert.deepEqual(semanticTokensVarlist('a\n\nb ').map((x) => [x.line, x.length]), [[0, 1], [2, 1]]);
+});
+
+test('declaration files suggest names scripts use but nothing declares', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'osc-lens-'));
+  writeFileSync(join(dir, 'v.bus'), '[script]\n1\nm.osc\n[varnamelist]\n1\nv.txt\n[constfile]\n1\nc.txt\n');
+  writeFileSync(join(dir, 'm.osc'), '(L.L.known) (L.L.NewVar) (C.L.Declared) (C.L.NewConst) (F.L.NewCurve) (L.L.elec_busbar_main)');
+  writeFileSync(join(dir, 'v.txt'), 'known\n');
+  writeFileSync(join(dir, 'c.txt'), '[const]\nDeclared\n1\n');
+  const p = loadOwnerProject(join(dir, 'v.bus'));
+  const declared = { var: p.variables, str: p.stringVariables, const: p.constants, curve: p.curves };
+  const labels = (role: 'varlist' | 'constfile', text: string, line: number, builtIns?: Set<string>) =>
+    completeDecl(text, line, '', { role, used: p.used, declared, builtIns }).map((i) => i.label);
+  assert.deepEqual(labels('varlist', '', 0, new Set(['elec_busbar_main'])), ['NewVar']);
+  assert.deepEqual(labels('constfile', '[const]\n', 1), ['NewConst']);
+  assert.deepEqual(labels('constfile', '[newcurve]\n', 1), ['NewCurve']);
+  assert.ok(labels('constfile', '[const]\nX\n1\n', 3).includes('[pnt]'));
+});

@@ -91,3 +91,106 @@ export function analyzeVarlist(text: string, builtIns?: Set<string>): Finding[] 
   });
   return out;
 }
+
+// ---------------------------------------------------------------------------------------------
+// Highlighting and completion for varlists / constfiles
+// ---------------------------------------------------------------------------------------------
+
+export interface SemToken { line: number; col: number; length: number; type: 'keyword' | 'variable' | 'number' | 'function' | 'comment'; readonly?: boolean }
+
+const tokenAt = (lines: string[], line: number, type: SemToken['type'], readonly = false): SemToken | undefined => {
+  const text = lines[line];
+  if (text === undefined) return undefined;
+  const col = text.length - text.trimStart().length;
+  const length = text.trim().length;
+  return length > 0 ? { line, col, length, type, readonly } : undefined;
+};
+
+/** Mirrors parseConstText: tags are keywords, names variables/functions, values numbers, the rest prose. */
+export function semanticTokensConst(text: string): SemToken[] {
+  const lines = text.split(/\r\n|\n|\r/);
+  const out: SemToken[] = [];
+  const next = (from: number): number => { let k = from; while (k < lines.length && lines[k].trim() === '') k++; return k; };
+  const push = (t: SemToken | undefined) => { if (t) out.push(t); };
+  let i = 0;
+  while (i < lines.length) {
+    const m = TAG.exec(lines[i].trim());
+    if (!m) { if (lines[i].trim() !== '') push(tokenAt(lines, i, 'comment')); i++; continue; }
+    push(tokenAt(lines, i, 'keyword'));
+    const kind = m[1].toLowerCase();
+    if (kind === 'const') {
+      const a = next(i + 1); const b = next(a + 1);
+      push(tokenAt(lines, a, 'variable', true));
+      push(tokenAt(lines, b, NUM.test((lines[b] ?? '').trim()) ? 'number' : 'comment'));
+      i = b + 1;
+    } else if (kind === 'newcurve') {
+      const a = next(i + 1);
+      push(tokenAt(lines, a, 'function'));
+      i = a + 1;
+    } else {
+      const a = next(i + 1);
+      const parts = (lines[a] ?? '').trim().split(/\s+/).filter(Boolean);
+      if (parts.length >= 2) {
+        let col = lines[a].indexOf(parts[0]);
+        for (const p of parts) { out.push({ line: a, col: lines[a].indexOf(p, col), length: p.length, type: NUM.test(p) ? 'number' : 'comment' }); col = lines[a].indexOf(p, col) + p.length; }
+        i = a + 1;
+      } else {
+        push(tokenAt(lines, a, 'number'));
+        const b = next(a + 1);
+        push(tokenAt(lines, b, 'number'));
+        i = b + 1;
+      }
+    }
+  }
+  return out;
+}
+
+export function semanticTokensVarlist(text: string): SemToken[] {
+  const lines = text.split(/\r\n|\n|\r/);
+  return lines.map((_, i) => tokenAt(lines, i, 'variable')).filter((t): t is SemToken => !!t);
+}
+
+export interface DeclItem { label: string; detail: string; insertText?: string; snippet?: boolean }
+
+const TAG_SNIPPETS: DeclItem[] = [
+  { label: '[const]', detail: 'constant: name, then value', insertText: '[const]\n${1:name}\n${2:0}', snippet: true },
+  { label: '[newcurve]', detail: 'curve with points', insertText: '[newcurve]\n${1:name}\n[pnt]\n${2:0}\n${3:0}\n[pnt]\n${4:1}\n${5:1}', snippet: true },
+  { label: '[pnt]', detail: 'curve point: x, then y', insertText: '[pnt]\n${1:x}\n${2:y}', snippet: true },
+];
+
+export interface DeclContext {
+  role: 'varlist' | 'stringvarlist' | 'constfile';
+  /** names the project's scripts reference (lower-case -> first spelling) */
+  used: { var: Map<string, string>; str: Map<string, string>; const: Map<string, string>; curve: Map<string, string> };
+  /** names already declared anywhere in the project, lower-case */
+  declared: { var: Set<string>; str: Set<string>; const: Set<string>; curve: Set<string> };
+  builtIns?: Set<string>;
+}
+
+/** `lineText` is the current line up to the cursor; `text` the whole document. */
+export function completeDecl(text: string, line: number, lineText: string, ctx: DeclContext): DeclItem[] {
+  const lines = text.split(/\r\n|\n|\r/);
+  const prefix = lineText.trim();
+  if (ctx.role === 'constfile') {
+    if (prefix.startsWith('[')) return TAG_SNIPPETS;
+    let p = line - 1;
+    while (p >= 0 && lines[p].trim() === '') p--;
+    const prev = p >= 0 ? lines[p].trim().toLowerCase() : '';
+    const local = parseConstText(text);
+    if (prev === '[const]') return missing(ctx.used.const, ctx.declared.const, new Set(local.consts.map((c) => c.name.toLowerCase())), 'constant used in scripts, not declared yet');
+    if (prev === '[newcurve]') return missing(ctx.used.curve, ctx.declared.curve, new Set(local.curves.map((c) => c.name.toLowerCase())), 'curve used in scripts, not declared yet');
+    return prefix === '' ? TAG_SNIPPETS : [];
+  }
+  const kind = ctx.role === 'varlist' ? 'var' : 'str';
+  const here = new Set(lines.map((l) => l.trim().toLowerCase()).filter(Boolean));
+  return missing(ctx.used[kind], ctx.declared[kind], here, 'used in scripts, not declared yet', ctx.builtIns);
+}
+
+function missing(used: Map<string, string>, declared: Set<string>, here: Set<string>, detail: string, builtIns?: Set<string>): DeclItem[] {
+  const items: DeclItem[] = [];
+  for (const [lower, display] of used) {
+    if (declared.has(lower) || here.has(lower) || builtIns?.has(lower)) continue;
+    items.push({ label: display, detail });
+  }
+  return items;
+}

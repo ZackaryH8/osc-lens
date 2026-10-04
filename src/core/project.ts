@@ -8,6 +8,8 @@ export interface Decl { file: string; line: number; value?: number; points?: [nu
 export type Role = 'varlist' | 'stringvarlist' | 'constfile';
 
 export interface ProjectInfo {
+  /** Names the scripts reference, keyed lower-case with the first spelling seen. */
+  used: Used;
   /** Keys: var:<name>, str:<name>, const:<name>, curve:<name> (lower-case). First definition wins, as in OMSI. */
   declarations: Map<string, Decl>;
   /** Exact-case sound trigger names from the vehicle's sound cfg [trigger] entries. */
@@ -126,6 +128,70 @@ function macrosOf(path: string | undefined): string[] {
   return tokenize(read(path)).filter((t) => t.text.startsWith('{macro:') && t.text.endsWith('}')).map((t) => t.text.slice(7, -1).toLowerCase());
 }
 
+export interface Used { var: Map<string, string>; str: Map<string, string>; const: Map<string, string>; curve: Map<string, string> }
+
+function usesOf(path: string | undefined, into: Used): void {
+  if (!path || !existsSync(path)) return;
+  for (const t of tokenize(read(path))) {
+    const m = /^\((.)\.(.)\.(.+)\)$/.exec(t.text);
+    if (!m) continue;
+    const [, x, y, name] = m;
+    const map = x === 'C' ? into.const : x === 'F' ? into.curve : (x === 'L' || x === 'S') && y === 'L' ? into.var : (x === 'L' || x === 'S') && y === '$' ? into.str : undefined;
+    if (map && !map.has(name.toLowerCase())) map.set(name.toLowerCase(), name);
+  }
+}
+
+function buildProject(owner: string, dir: string, sections: Record<string, string[]>, index: number, omsiPath: string | undefined): ProjectInfo {
+  const entry = basename(owner);
+  const missing: string[] = [];
+  const found = (p: string): string | undefined => {
+    const hit = resolveCI(dir, p);
+    if (!hit || !existsSync(hit)) missing.push(p);
+    return hit;
+  };
+  const scripts = (sections.script ?? []).map((p) => resolveCI(dir, p) ?? resolve(dir, p.replace(/\\/g, '/')));
+  const used: Used = { var: new Map(), str: new Map(), const: new Map(), curve: new Map() };
+  scripts.forEach((p) => usesOf(p, used));
+  const variables = new Set<string>();
+  const stringVariables = new Set<string>();
+  const constants = new Set<string>();
+  const curves = new Set<string>();
+  const isVehicle = /\.(bus|ovh)$/i.test(entry);
+  let variablesComplete = !isVehicle;
+  let stringVariablesComplete = !isVehicle;
+  if (isVehicle && omsiPath) {
+    const builtIn = resolveCI(omsiPath, 'program/varlist_roadvehicle.txt');
+    const builtInStr = resolveCI(omsiPath, 'program/stringvarlist_roadvehicle.txt');
+    if (builtIn && existsSync(builtIn)) { names(builtIn).forEach((n) => variables.add(n.toLowerCase())); variablesComplete = true; } else missing.push('program/varlist_roadvehicle.txt (under oscLens.omsiPath)');
+    if (builtInStr && existsSync(builtInStr)) { names(builtInStr).forEach((n) => stringVariables.add(n.toLowerCase())); stringVariablesComplete = true; } else missing.push('program/stringvarlist_roadvehicle.txt (under oscLens.omsiPath)');
+  }
+  const declarations = new Map<string, Decl>();
+  for (const p of sections.varnamelist ?? []) declareNames(found(p), 'var', variables, declarations);
+  for (const p of sections.stringvarnamelist ?? []) declareNames(found(p), 'str', stringVariables, declarations);
+  for (const p of sections.constfile ?? []) parseConst(found(p), constants, curves, declarations);
+  const soundTriggers = new Map<string, string>();
+  let soundRead = false;
+  for (const p of [...(sections.sound ?? []), ...(sections.sound_ai ?? [])]) soundRead = soundTriggersOf(resolveCI(dir, p), soundTriggers) || soundRead;
+  const usedTriggers = new Set<string>();
+  scripts.forEach((p) => triggerUses(p, usedTriggers));
+
+  const earlierMacros = new Set<string>();
+  const laterMacros = new Set<string>();
+  scripts.forEach((p, i) => {
+    if (i === index) return;
+    for (const m of macrosOf(p)) (i < index ? earlierMacros : laterMacros).add(m);
+  });
+
+  let callbacks: Set<string> | undefined;
+  if (omsiPath) {
+    const list = resolveCI(omsiPath, 'program/callbacklist_roadvehicle.txt');
+    if (list && existsSync(list)) callbacks = new Set(names(list).map((n) => n.toLowerCase()));
+  }
+  // A varlist we could not read means the table is not known in full: do not guess.
+  if (missing.some((m) => !m.startsWith('program/'))) { variablesComplete = false; stringVariablesComplete = false; }
+  return { used, declarations, soundTriggers, usedTriggers, soundRead, missing, owner, scripts, index, variables, stringVariables, constants, curves, earlierMacros, laterMacros, variablesComplete, stringVariablesComplete, callbacks };
+}
+
 /** Finds the .bus/.ovh/.sco that lists this script and gathers what it declares. */
 export function loadProject(scriptPath: string, omsiPath?: string): ProjectInfo | undefined {
   const target = norm(scriptPath);
@@ -136,57 +202,17 @@ export function loadProject(scriptPath: string, omsiPath?: string): ProjectInfo 
     for (const entry of entries.filter((e) => /\.(bus|ovh|sco)$/i.test(e))) {
       const owner = join(dir, entry);
       const sections = parseOwner(owner);
-      const missing: string[] = [];
-      const found = (p: string): string | undefined => {
-        const hit = resolveCI(dir, p);
-        if (!hit || !existsSync(hit)) missing.push(p);
-        return hit;
-      };
       const scripts = (sections.script ?? []).map((p) => resolveCI(dir, p) ?? resolve(dir, p.replace(/\\/g, '/')));
       const index = scripts.findIndex((p) => norm(p) === target);
-      if (index < 0) continue;
-
-      const variables = new Set<string>();
-      const stringVariables = new Set<string>();
-      const constants = new Set<string>();
-      const curves = new Set<string>();
-      const isVehicle = /\.(bus|ovh)$/i.test(entry);
-      let variablesComplete = !isVehicle;
-      let stringVariablesComplete = !isVehicle;
-      if (isVehicle && omsiPath) {
-        const builtIn = resolveCI(omsiPath, 'program/varlist_roadvehicle.txt');
-        const builtInStr = resolveCI(omsiPath, 'program/stringvarlist_roadvehicle.txt');
-        if (builtIn && existsSync(builtIn)) { names(builtIn).forEach((n) => variables.add(n.toLowerCase())); variablesComplete = true; } else missing.push('program/varlist_roadvehicle.txt (under oscLens.omsiPath)');
-        if (builtInStr && existsSync(builtInStr)) { names(builtInStr).forEach((n) => stringVariables.add(n.toLowerCase())); stringVariablesComplete = true; } else missing.push('program/stringvarlist_roadvehicle.txt (under oscLens.omsiPath)');
-      }
-      const declarations = new Map<string, Decl>();
-      for (const p of sections.varnamelist ?? []) declareNames(found(p), 'var', variables, declarations);
-      for (const p of sections.stringvarnamelist ?? []) declareNames(found(p), 'str', stringVariables, declarations);
-      for (const p of sections.constfile ?? []) parseConst(found(p), constants, curves, declarations);
-      const soundTriggers = new Map<string, string>();
-      let soundRead = false;
-      for (const p of [...(sections.sound ?? []), ...(sections.sound_ai ?? [])]) soundRead = soundTriggersOf(resolveCI(dir, p), soundTriggers) || soundRead;
-      const usedTriggers = new Set<string>();
-      scripts.forEach((p) => triggerUses(p, usedTriggers));
-
-      const earlierMacros = new Set<string>();
-      const laterMacros = new Set<string>();
-      scripts.forEach((p, i) => {
-        if (i === index) return;
-        for (const m of macrosOf(p)) (i < index ? earlierMacros : laterMacros).add(m);
-      });
-
-      let callbacks: Set<string> | undefined;
-      if (omsiPath) {
-        const list = resolveCI(omsiPath, 'program/callbacklist_roadvehicle.txt');
-        if (list && existsSync(list)) callbacks = new Set(names(list).map((n) => n.toLowerCase()));
-      }
-      // A varlist we could not read means the table is not known in full: do not guess.
-      if (missing.some((m) => !m.startsWith('program/'))) { variablesComplete = false; stringVariablesComplete = false; }
-      return { declarations, soundTriggers, usedTriggers, soundRead, missing, owner, scripts, index, variables, stringVariables, constants, curves, earlierMacros, laterMacros, variablesComplete, stringVariablesComplete, callbacks };
+      if (index >= 0) return buildProject(owner, dir, sections, index, omsiPath);
     }
   }
   return undefined;
+}
+
+/** The same project, starting from the .bus/.ovh/.sco itself (used for varlist/constfile editing). */
+export function loadOwnerProject(owner: string, omsiPath?: string): ProjectInfo {
+  return buildProject(owner, dirname(resolve(owner)), parseOwner(owner), -1, omsiPath);
 }
 
 export const ownerName = (p: ProjectInfo): string => basename(p.owner);

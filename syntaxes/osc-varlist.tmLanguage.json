@@ -1,0 +1,8 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "OMSI Varlist",
+  "scopeName": "source.osc-varlist",
+  "patterns": [
+    { "match": "^\\s*\\S.*$", "name": "variable.other.osc" }
+  ]
+}

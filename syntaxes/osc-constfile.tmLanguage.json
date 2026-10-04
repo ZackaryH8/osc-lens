@@ -1,0 +1,10 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "OMSI Constfile",
+  "scopeName": "source.osc-constfile",
+  "patterns": [
+    { "match": "^\\s*(\\[)(const|newcurve|pnt)(\\])\\s*$", "captures": { "1": { "name": "punctuation.definition.tag.osc" }, "2": { "name": "keyword.control.osc" }, "3": { "name": "punctuation.definition.tag.osc" } } },
+    { "match": "^\\s*[-+]?(\\d+\\.?\\d*|\\.\\d+)([eE][-+]?\\d+)?(\\s+[-+]?(\\d+\\.?\\d*|\\.\\d+)([eE][-+]?\\d+)?)?\\s*$", "name": "constant.numeric.osc" },
+    { "match": "^\\s*\\S.*$", "name": "variable.other.constant.osc" }
+  ]
+}
