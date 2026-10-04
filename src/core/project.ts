@@ -16,6 +16,27 @@ export interface ProjectInfo {
   variablesComplete: boolean;
   stringVariablesComplete: boolean;
   callbacks?: Set<string>;
+  /** Files the owner lists (or that OMSI needs) that could not be found or read. */
+  missing: string[];
+}
+
+/**
+ * Resolves a path case-insensitively, as OMSI (Windows) does. .bus files say `Script\\Vars.txt`
+ * while the file on a case-sensitive filesystem may be `script/vars.txt`. Returns undefined when
+ * some segment does not exist.
+ */
+export function resolveCI(base: string, relative: string): string | undefined {
+  let current = resolve(base);
+  for (const part of relative.replace(/\\/g, '/').split('/')) {
+    if (part === '' || part === '.') continue;
+    if (part === '..') { current = dirname(current); continue; }
+    let entries: string[];
+    try { entries = readdirSync(current); } catch { return undefined; }
+    const hit = entries.includes(part) ? part : entries.find((e) => e.toLowerCase() === part.toLowerCase());
+    if (hit === undefined) return undefined;
+    current = join(current, hit);
+  }
+  return current;
 }
 
 const read = (path: string): string => readFileSync(path, 'latin1');
@@ -25,8 +46,8 @@ function lines(path: string): string[] {
   return read(path).split(/\r\n|\n|\r/);
 }
 
-function names(path: string): string[] {
-  return existsSync(path) ? lines(path).map((l) => l.trim()).filter((l) => l.length > 0) : [];
+function names(path: string | undefined): string[] {
+  return path && existsSync(path) ? lines(path).map((l) => l.trim()).filter((l) => l.length > 0) : [];
 }
 
 /** Reads "[tag] / count / n paths" sections of a .bus/.ovh/.sco. */
@@ -46,8 +67,8 @@ export function parseOwner(path: string): Record<string, string[]> {
   return result;
 }
 
-function parseConst(path: string, constants: Set<string>, curves: Set<string>): void {
-  if (!existsSync(path)) return;
+function parseConst(path: string | undefined, constants: Set<string>, curves: Set<string>): void {
+  if (!path || !existsSync(path)) return;
   const raw = lines(path).map((l) => l.trim());
   for (let i = 0; i < raw.length; i++) {
     const tag = raw[i].toLowerCase();
@@ -56,8 +77,8 @@ function parseConst(path: string, constants: Set<string>, curves: Set<string>): 
   }
 }
 
-function macrosOf(path: string): string[] {
-  if (!existsSync(path)) return [];
+function macrosOf(path: string | undefined): string[] {
+  if (!path || !existsSync(path)) return [];
   return tokenize(read(path)).filter((t) => t.text.startsWith('{macro:') && t.text.endsWith('}')).map((t) => t.text.slice(7, -1).toLowerCase());
 }
 
@@ -71,7 +92,13 @@ export function loadProject(scriptPath: string, omsiPath?: string): ProjectInfo 
     for (const entry of entries.filter((e) => /\.(bus|ovh|sco)$/i.test(e))) {
       const owner = join(dir, entry);
       const sections = parseOwner(owner);
-      const scripts = (sections.script ?? []).map((p) => resolve(dir, p.replace(/\\/g, '/')));
+      const missing: string[] = [];
+      const found = (p: string): string | undefined => {
+        const hit = resolveCI(dir, p);
+        if (!hit || !existsSync(hit)) missing.push(p);
+        return hit;
+      };
+      const scripts = (sections.script ?? []).map((p) => resolveCI(dir, p) ?? resolve(dir, p.replace(/\\/g, '/')));
       const index = scripts.findIndex((p) => norm(p) === target);
       if (index < 0) continue;
 
@@ -83,15 +110,14 @@ export function loadProject(scriptPath: string, omsiPath?: string): ProjectInfo 
       let variablesComplete = !isVehicle;
       let stringVariablesComplete = !isVehicle;
       if (isVehicle && omsiPath) {
-        const program = join(omsiPath, 'program');
-        const builtIn = join(program, 'varlist_roadvehicle.txt');
-        const builtInStr = join(program, 'stringvarlist_roadvehicle.txt');
-        if (existsSync(builtIn)) { names(builtIn).forEach((n) => variables.add(n.toLowerCase())); variablesComplete = true; }
-        if (existsSync(builtInStr)) { names(builtInStr).forEach((n) => stringVariables.add(n.toLowerCase())); stringVariablesComplete = true; }
+        const builtIn = resolveCI(omsiPath, 'program/varlist_roadvehicle.txt');
+        const builtInStr = resolveCI(omsiPath, 'program/stringvarlist_roadvehicle.txt');
+        if (builtIn && existsSync(builtIn)) { names(builtIn).forEach((n) => variables.add(n.toLowerCase())); variablesComplete = true; } else missing.push('program/varlist_roadvehicle.txt (under oscLens.omsiPath)');
+        if (builtInStr && existsSync(builtInStr)) { names(builtInStr).forEach((n) => stringVariables.add(n.toLowerCase())); stringVariablesComplete = true; } else missing.push('program/stringvarlist_roadvehicle.txt (under oscLens.omsiPath)');
       }
-      for (const p of sections.varnamelist ?? []) names(resolve(dir, p.replace(/\\/g, '/'))).forEach((n) => variables.add(n.toLowerCase()));
-      for (const p of sections.stringvarnamelist ?? []) names(resolve(dir, p.replace(/\\/g, '/'))).forEach((n) => stringVariables.add(n.toLowerCase()));
-      for (const p of sections.constfile ?? []) parseConst(resolve(dir, p.replace(/\\/g, '/')), constants, curves);
+      for (const p of sections.varnamelist ?? []) names(found(p)).forEach((n) => variables.add(n.toLowerCase()));
+      for (const p of sections.stringvarnamelist ?? []) names(found(p)).forEach((n) => stringVariables.add(n.toLowerCase()));
+      for (const p of sections.constfile ?? []) parseConst(found(p), constants, curves);
 
       const earlierMacros = new Set<string>();
       const laterMacros = new Set<string>();
@@ -102,10 +128,12 @@ export function loadProject(scriptPath: string, omsiPath?: string): ProjectInfo 
 
       let callbacks: Set<string> | undefined;
       if (omsiPath) {
-        const list = join(omsiPath, 'program', 'callbacklist_roadvehicle.txt');
-        if (existsSync(list)) callbacks = new Set(names(list).map((n) => n.toLowerCase()));
+        const list = resolveCI(omsiPath, 'program/callbacklist_roadvehicle.txt');
+        if (list && existsSync(list)) callbacks = new Set(names(list).map((n) => n.toLowerCase()));
       }
-      return { owner, scripts, index, variables, stringVariables, constants, curves, earlierMacros, laterMacros, variablesComplete, stringVariablesComplete, callbacks };
+      // A varlist we could not read means the table is not known in full: do not guess.
+      if (missing.some((m) => !m.startsWith('program/'))) { variablesComplete = false; stringVariablesComplete = false; }
+      return { missing, owner, scripts, index, variables, stringVariables, constants, curves, earlierMacros, laterMacros, variablesComplete, stringVariablesComplete, callbacks };
     }
   }
   return undefined;

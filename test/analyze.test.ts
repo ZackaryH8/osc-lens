@@ -95,3 +95,28 @@ test('a missing/empty constfile does not break resolution', () => {
   writeFileSync(join(dir, 's.osc'), '1 (S.L.v)');
   assert.ok(loadProject(join(dir, 's.osc')));
 });
+
+test('paths in .bus files resolve case-insensitively (Windows content on Linux)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'osc-lens-'));
+  mkdirSync(join(dir, 'script'));
+  mkdirSync(join(dir, 'Program'));
+  writeFileSync(join(dir, 'Program', 'varlist_roadvehicle.txt'), 'elec_busbar_main\n');
+  writeFileSync(join(dir, 'Program', 'stringvarlist_roadvehicle.txt'), 'ident\n');
+  writeFileSync(join(dir, 'v.bus'), '[script]\n1\nScript\\Main.OSC\n[varnamelist]\n1\nSCRIPT\\Vars.TXT\n');
+  writeFileSync(join(dir, 'script', 'main.osc'), '1 (S.L.door_0)');
+  writeFileSync(join(dir, 'script', 'vars.txt'), 'door_0\n');
+  const project = loadProject(join(dir, 'script', 'main.osc'), dir);
+  assert.ok(project);
+  assert.deepEqual(project.missing, []);
+  assert.deepEqual(codes('{macro:a} (L.L.door_0) (L.L.ELEC_BUSBAR_MAIN) (L.L.bogus) {end}', { project }), ['undeclared-variable']);
+});
+
+test('an unreadable varlist turns undeclared-variable checks off and says so', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'osc-lens-'));
+  mkdirSync(join(dir, 'program'));
+  writeFileSync(join(dir, 'program', 'varlist_roadvehicle.txt'), 'a\n');
+  writeFileSync(join(dir, 'v.bus'), '[script]\n1\nm.osc\n[varnamelist]\n1\nnowhere.txt\n');
+  writeFileSync(join(dir, 'm.osc'), '1 (S.L.x)');
+  const project = loadProject(join(dir, 'm.osc'), dir)!;
+  assert.deepEqual(codes('{macro:a} (L.L.whatever) {end}', { project }), ['project-incomplete']);
+});

@@ -121,6 +121,10 @@ export function analyze(text: string, options: AnalyzeOptions = {}): Analysis {
     }
   }
 
+  if (project && project.missing.length > 0) {
+    findings.push({ code: 'project-incomplete', severity: 'info', evidence: 'ida', line: 0, col: 0, endLine: 0, endCol: 0,
+      message: `Could not read: ${project.missing.join(', ')}. Declaration checks that depend on them are turned off.` });
+  }
   if (options.stackAnalysis) stackAnalysis(nodes, language, add);
   findings.sort((a, b) => a.line - b.line || a.col - b.col);
   return { findings, nodes, macros: [...macroDefs.keys()], triggers: [...triggerDefs.keys()] };
