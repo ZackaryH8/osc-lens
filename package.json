@@ -1,15 +1,15 @@
 {
   "name": "osc-lens",
   "displayName": "OSC Lens",
-  "description": "Syntax highlighting, completion and diagnostics for OMSI 2 .osc scripts, driven by OMSI.MP's reverse-engineering notes.",
-  "version": "0.0.1",
-  "publisher": "omsi-mp",
-  "private": true,
+  "description": "Highlighting, completion, hover and diagnostics for OMSI 2 .osc scripts, varlists and constfiles - rules taken from reverse engineering of Omsi.exe.",
+  "version": "0.1.0",
+  "publisher": "zackaryh8",
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": [
-    "Programming Languages"
+    "Programming Languages",
+    "Linters"
   ],
   "contributes": {
     "languages": [
@@ -91,11 +91,12 @@
     }
   },
   "scripts": {
-    "compile": "tsc -p .",
-    "watch": "tsc -w -p .",
     "check": "node scripts/check-language-data.mjs",
+    "compile": "tsc -p .",
+    "build": "node scripts/build.mjs",
+    "smoke": "node scripts/smoke.mjs",
     "test": "npm run check && tsc -p . && node --test out/test/*.test.js",
-    "vscode": "npm run compile"
+    "package": "npm run build && npm run smoke && vsce package --no-dependencies"
   },
   "dependencies": {
     "@types/node": "^22.20.5",
@@ -105,7 +106,7 @@
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.12"
   },
-  "main": "./out/src/client.js",
+  "main": "./out/client.js",
   "activationEvents": [
     "onLanguage:osc",
     "workspaceContains:**/*.bus",
@@ -117,6 +118,35 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@types/vscode": "^1.85.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "esbuild": "^0.25.0",
+    "@vscode/vsce": "^3.0.0"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "ZackaryH8"
+  },
+  "icon": "images/icon.png",
+  "homepage": "https://github.com/ZackaryH8/OMSI.MP/tree/master/osc-lens#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ZackaryH8/OMSI.MP.git",
+    "directory": "osc-lens"
+  },
+  "bugs": {
+    "url": "https://github.com/ZackaryH8/OMSI.MP/issues"
+  },
+  "keywords": [
+    "omsi",
+    "omsi 2",
+    "osc",
+    "bus simulator",
+    "script",
+    "linter",
+    "language server"
+  ],
+  "galleryBanner": {
+    "color": "#0d1526",
+    "theme": "dark"
   }
 }

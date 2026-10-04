@@ -1,6 +1,10 @@
-test/**
-src/**
-scripts/**
-tsconfig.json
-out/test/**
-**/*.map
+**
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE
+!language-configuration.json
+!syntaxes/**
+!images/icon.png
+!out/client.js
+!out/server.js

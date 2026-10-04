@@ -1,5 +1,4 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import raw from '../../data/osc-language.json';
 
 export type Evidence = 'ida' | 'corpus' | 'hyp';
 
@@ -31,9 +30,9 @@ export interface Language extends LanguageData {
 
 let cached: Language | undefined;
 
-export function loadLanguage(dataPath = join(__dirname, '../../../data/osc-language.json')): Language {
-  if (cached && dataPath.endsWith('osc-language.json')) return cached;
-  const data = JSON.parse(readFileSync(dataPath, 'utf8')) as LanguageData;
+export function loadLanguage(): Language {
+  if (cached) return cached;
+  const data = raw as unknown as LanguageData;
   const operatorByToken = new Map<string, OperatorInfo>();
   const suspectOperators = new Set<string>();
   const stringOps = new Set<string>();
@@ -56,6 +55,6 @@ export function loadLanguage(dataPath = join(__dirname, '../../../data/osc-langu
     systemVariableSet: new Set(data.systemVariables.map((v) => v.name.toLowerCase())),
     callbackSet: new Set(data.callbacks.map((c) => c.name.toLowerCase())),
   };
-  if (dataPath.endsWith('osc-language.json')) cached = language;
+  cached = language;
   return language;
 }

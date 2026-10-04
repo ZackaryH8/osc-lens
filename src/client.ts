@@ -5,7 +5,7 @@ import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } f
 let client: LanguageClient | undefined;
 
 export function activate(context: ExtensionContext): void {
-  const module = context.asAbsolutePath(path.join('out', 'src', 'server.js'));
+  const module = context.asAbsolutePath(path.join('out', 'server.js'));
   const serverOptions: ServerOptions = {
     run: { module, transport: TransportKind.ipc },
     debug: { module, transport: TransportKind.ipc, options: { execArgv: ['--nolazy', '--inspect=6009'] } },

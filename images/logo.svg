@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="OSC Lens">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1b2a4a"/>
+      <stop offset="1" stop-color="#0d1526"/>
+    </linearGradient>
+    <radialGradient id="glass" cx="0.35" cy="0.3" r="0.9">
+      <stop offset="0" stop-color="#2d4a7a" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#2d4a7a" stop-opacity="0.08"/>
+    </radialGradient>
+  </defs>
+  <rect width="256" height="256" rx="52" fill="url(#bg)"/>
+  <!-- lens -->
+  <circle cx="116" cy="116" r="68" fill="url(#glass)"/>
+  <circle cx="116" cy="116" r="68" fill="none" stroke="#f5a524" stroke-width="16"/>
+  <line x1="166" y1="166" x2="214" y2="214" stroke="#f5a524" stroke-width="22" stroke-linecap="round"/>
+  <!-- braces: the script language -->
+  <g fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M102 80 C90 80 86 86 86 97 L86 106 C86 114 80 116 74 116 C80 116 86 118 86 126 L86 135 C86 146 90 152 102 152"/>
+    <path d="M130 80 C142 80 146 86 146 97 L146 106 C146 114 152 116 158 116 C152 116 146 118 146 126 L146 135 C146 146 142 152 130 152"/>
+  </g>
+  <!-- a found problem under the lens -->
+  <circle cx="116" cy="116" r="7" fill="#ff5d5d"/>
+</svg>
