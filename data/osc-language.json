@@ -525,11 +525,11 @@
     },
     {
       "token": "if",
-      "doc": "Branch on st[0] != 0. The condition is NOT popped: real scripts follow {if} with \"x &&\" to AND against it, and openOMSI documents the same. OMX currently pops it (ScriptOp.JumpIfZero), which looks wrong for such scripts.",
-      "evidence": "corpus",
-      "source": "Enviro 200 MMC script (macros door_interlock, dashboard_display_kneeling); openOMSI docs/FORMATS.md; contradicts OMX ScriptRuntime.cs:231",
-      "pops": 0,
-      "pushes": 0
+      "doc": "Branch on st[0] != 0. UNRESOLVED whether OMSI pops the condition: OMX pops it (JumpIfZero), while one real mod script and openOMSI docs suggest it is left on the stack. Needs an IDA check of the {if} node before stack analysis relies on either.",
+      "evidence": "hyp",
+      "source": "OMX ScriptRuntime.cs:231 (pops); Enviro 200 MMC script and openOMSI docs/FORMATS.md (suggest peek)",
+      "pops": null,
+      "pushes": null
     },
     {
       "token": "else",

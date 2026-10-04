@@ -1,5 +1,5 @@
 ' Synthetic fixture: idioms seen in real mod scripts (an Enviro 200 MMC extension), written fresh.
-' {if} must not pop its condition: the inner && below ANDs with the outer condition.
+' Idiom only: assumes {if} leaves its condition on the stack. Unresolved, see data/osc-language.json.
 
 {macro:interlock}
 	(L.L.power) 0 >
