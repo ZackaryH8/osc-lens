@@ -3,11 +3,17 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { tokenize } from './lexer';
 import { parseConstText } from './declfiles';
 
-export interface Decl { file: string; line: number; value?: number; points?: [number, number][] }
+export interface Decl { file: string; line: number; value?: number; points?: [number, number][]; /** sound trigger: the wav of the [sound] block it belongs to */ wav?: string }
+
+export interface Loc { file: string; line: number; col: number; endCol: number }
+export interface Refs { reads: Loc[]; writes: Loc[]; readCount: number; writeCount: number }
+const CAP = 300;
 
 export type Role = 'varlist' | 'stringvarlist' | 'constfile';
 
 export interface ProjectInfo {
+  /** Every use in the vehicle's scripts. Keys: var:/str:/const:/curve:/macro: (lower-case) and trig: (exact case). */
+  refs: Map<string, Refs>;
   /** Names the scripts reference, keyed lower-case with the first spelling seen. */
   used: Used;
   /** Keys: var:<name>, str:<name>, const:<name>, curve:<name> (lower-case). First definition wins, as in OMSI. */
@@ -113,7 +119,11 @@ function declareNames(path: string | undefined, kind: 'var' | 'str', into: Set<s
 function soundTriggersOf(path: string | undefined, into: Map<string, Decl>): boolean {
   if (!path || !existsSync(path)) return false;
   const raw = lines(path).map((l) => l.trim());
-  for (let i = 0; i < raw.length; i++) if (/^\[trigger\]$/i.test(raw[i]) && raw[i + 1] && !into.has(raw[i + 1])) into.set(raw[i + 1], { file: path, line: i + 1 });
+  for (let i = 0; i < raw.length; i++) if (/^\[trigger\]$/i.test(raw[i]) && raw[i + 1] && !into.has(raw[i + 1])) {
+      let j = i - 1;
+      while (j >= 0 && !/^\[sound\]$/i.test(raw[j])) j--;
+      into.set(raw[i + 1], { file: path, line: i + 1, wav: j >= 0 ? raw[j + 1] : undefined });
+    }
   return true;
 }
 
@@ -143,6 +153,29 @@ function usesOf(path: string | undefined, into: Used): void {
   }
 }
 
+function refsOf(path: string | undefined, into: Map<string, Refs>): void {
+  if (!path || !existsSync(path)) return;
+  for (const t of tokenize(read(path))) {
+    const m = /^\((.)\.(.)\.(.+)\)$/.exec(t.text);
+    if (!m) continue;
+    const [, x, y, name] = m;
+    let key: string | undefined;
+    let write = false;
+    if ((x === 'L' || x === 'S') && y === 'L') { key = 'var:' + name.toLowerCase(); write = x === 'S'; }
+    else if ((x === 'L' || x === 'S') && y === '$') { key = 'str:' + name.toLowerCase(); write = x === 'S'; }
+    else if (x === 'C') key = 'const:' + name.toLowerCase();
+    else if (x === 'F') key = 'curve:' + name.toLowerCase();
+    else if (x === 'M' && y === 'L') key = 'macro:' + name.toLowerCase();
+    else if (x === 'T') key = 'trig:' + name;
+    if (!key) continue;
+    let r = into.get(key);
+    if (!r) into.set(key, (r = { reads: [], writes: [], readCount: 0, writeCount: 0 }));
+    const loc = { file: path, line: t.line, col: t.col, endCol: t.endCol };
+    if (write) { r.writeCount++; if (r.writes.length < CAP) r.writes.push(loc); }
+    else { r.readCount++; if (r.reads.length < CAP) r.reads.push(loc); }
+  }
+}
+
 function buildProject(owner: string, dir: string, sections: Record<string, string[]>, index: number, omsiPath: string | undefined): ProjectInfo {
   const entry = basename(owner);
   const missing: string[] = [];
@@ -154,6 +187,8 @@ function buildProject(owner: string, dir: string, sections: Record<string, strin
   const scripts = (sections.script ?? []).map((p) => resolveCI(dir, p) ?? resolve(dir, p.replace(/\\/g, '/')));
   const used: Used = { var: new Map(), str: new Map(), const: new Map(), curve: new Map() };
   scripts.forEach((p) => usesOf(p, used));
+  const refs = new Map<string, Refs>();
+  scripts.forEach((p) => refsOf(p, refs));
   const variables = new Set<string>();
   const stringVariables = new Set<string>();
   const constants = new Set<string>();
@@ -196,7 +231,7 @@ function buildProject(owner: string, dir: string, sections: Record<string, strin
   }
   // A varlist we could not read means the table is not known in full: do not guess.
   if (missing.some((m) => !m.startsWith('program/'))) { variablesComplete = false; stringVariablesComplete = false; }
-  return { macroDecls, used, declarations, soundTriggers, usedTriggers, soundRead, missing, owner, scripts, index, variables, stringVariables, constants, curves, earlierMacros, laterMacros, variablesComplete, stringVariablesComplete, callbacks };
+  return { refs, macroDecls, used, declarations, soundTriggers, usedTriggers, soundRead, missing, owner, scripts, index, variables, stringVariables, constants, curves, earlierMacros, laterMacros, variablesComplete, stringVariablesComplete, callbacks };
 }
 
 /** Finds the .bus/.ovh/.sco that lists this script and gathers what it declares. */

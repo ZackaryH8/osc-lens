@@ -213,3 +213,32 @@ test('declaration index covers built-ins, macros across scripts and sound trigge
   assert.equal(p.macroDecls.get('two')?.file.endsWith('b.osc'), true);
   assert.equal(p.soundTriggers.get('ev_a')?.line, 1);
 });
+
+import { hoverFor } from '../src/core/hover';
+import { foldingOf, refKeyAt, symbolsOf } from '../src/core/outline';
+
+test('hovers report project facts', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'osc-lens-'));
+  mkdirSync(join(dir, 'sound'));
+  writeFileSync(join(dir, 'v.bus'), '[script]\n1\nm.osc\n[varnamelist]\n1\nv.txt\n[constfile]\n1\nc.txt\n[sound]\nsound\\s.cfg\n');
+  writeFileSync(join(dir, 'v.txt'), 'speed\nunwritten\n');
+  writeFileSync(join(dir, 'c.txt'), '[const]\nK\n2.5\n[newcurve]\ncv\n[pnt]\n0\n1\n[pnt]\n10\n5\n');
+  writeFileSync(join(dir, 'sound', 's.cfg'), '[sound]\nbeep.wav\n[trigger]\nev_beep\n');
+  const text = "' Does the thing\n{macro:late} 1 {end}\n{macro:a}\n  (L.L.unwritten) 3 s2 l2 (S.L.speed) (C.L.K) (F.L.cv) (T.L.ev_beep) (T.L.EV_BEEP)\n{end}\n";
+  writeFileSync(join(dir, 'm.osc'), text);
+  const project = loadProject(join(dir, 'm.osc'))!;
+  const at = (needle: string) => hoverFor({ text, line: text.split('\n').findIndex((l) => l.includes(needle)), character: text.split('\n').find((l) => l.includes(needle))!.indexOf(needle) + 1, project })!;
+  assert.match(at('(L.L.unwritten)'), /Declared in `v.txt:2`[\s\S]*No script ever writes it/);
+  assert.match(at('(S.L.speed)'), /Written at:/);
+  assert.match(at('(C.L.K)'), /= `2.5`/);
+  assert.match(at('(F.L.cv)'), /x 0 … 10 → y 1 … 5/);
+  assert.match(at('(T.L.ev_beep)'), /Plays `beep.wav`/);
+  assert.match(at('(T.L.EV_BEEP)'), /case-sensitive/);
+  assert.match(at('l2'), /Last stored here \(line 4\)/);
+  assert.match(at('{macro:late}'), /Called: not|Not used|Called: 0|macro/i);
+
+  assert.deepEqual(symbolsOf(text).map((s) => s.name), ['late', 'a']);
+  assert.deepEqual(foldingOf(text), [{ startLine: 2, endLine: 4 }]);
+  assert.equal(refKeyAt(text, 3, text.split('\n')[3].indexOf('(L.L.unwritten)') + 2), 'var:unwritten');
+  assert.equal(project.refs.get('var:speed')?.writeCount, 1);
+});

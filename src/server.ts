@@ -1,10 +1,12 @@
 import { fileURLToPath } from 'node:url';
 import {
   createConnection, ProposedFeatures, TextDocuments, TextDocumentSyncKind, DiagnosticSeverity,
-  CompletionItemKind, InsertTextFormat, MarkupKind, Diagnostic, CompletionItem, Hover, SemanticTokensBuilder,
+  CompletionItemKind, InsertTextFormat, MarkupKind, Diagnostic, CompletionItem, DocumentSymbol, Hover, SemanticTokensBuilder,
 } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { analyze, Severity } from './core/analyze';
+import { foldingOf, refKeyAt, symbolsOf } from './core/outline';
+import { hoverFor } from './core/hover';
 import { complete } from './core/completion';
 import { loadLanguage } from './core/language';
 import { analyzeConstfile, analyzeVarlist, completeDecl, semanticTokensConst, semanticTokensVarlist } from './core/declfiles';
@@ -29,6 +31,9 @@ connection.onInitialize((params) => {
       completionProvider: { triggerCharacters: ['(', '.', '{', '$'] },
       hoverProvider: true,
       definitionProvider: true,
+      referencesProvider: true,
+      documentSymbolProvider: true,
+      foldingRangeProvider: true,
       semanticTokensProvider: { legend: { tokenTypes: [...TOKEN_TYPES], tokenModifiers: ['readonly'] }, full: true },
     },
   };
@@ -125,33 +130,33 @@ connection.onCompletion(async (params): Promise<CompletionItem[]> => {
     .map((i) => ({ label: i.label, kind: itemKind[i.kind], detail: i.detail, documentation: i.documentation ? { kind: MarkupKind.PlainText, value: i.documentation } : undefined, insertText: i.label }));
 });
 
-connection.onHover((params): Hover | null => {
+connection.onHover(async (params): Promise<Hover | null> => {
   const doc = documents.get(params.textDocument.uri);
-  if (!doc) return null;
-  const line = doc.getText({ start: { line: params.position.line, character: 0 }, end: { line: params.position.line + 1, character: 0 } });
-  const re = /\S+/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(line))) {
-    if (params.position.character < m.index || params.position.character > m.index + m[0].length) continue;
-    const word = m[0];
-    const op = language.operatorByToken.get(word);
-    if (op) {
-      const effect = op.pops === null ? 'string stack' : `pops ${op.pops}, pushes ${op.pushes}`;
-      return { contents: { kind: MarkupKind.Markdown, value: `**${op.token}** — ${effect}\n\n${op.doc}\n\n_evidence: ${op.evidence}_ · \`${op.source}\`${op.note ? `\n\n${op.note}` : ''}` } };
-    }
-    const d = language.directives.find((x) => word === `{${x.token}}` || word.startsWith(`{${x.token}:`));
-    if (d) return { contents: { kind: MarkupKind.Markdown, value: `**{${d.token}}**\n\n${d.doc}\n\n_evidence: ${d.evidence}_ · \`${d.source}\`` } };
-    const decl = declarationAt(doc.uri, word);
-    if (decl?.decl.value !== undefined) return { contents: { kind: MarkupKind.Markdown, value: '**' + decl.name + '** = ' + decl.decl.value + '\n\n`' + decl.decl.file + ':' + (decl.decl.line + 1) + '`' } };
-    if (decl?.decl.points) return { contents: { kind: MarkupKind.Markdown, value: '**' + decl.name + '** curve\n\n' + (decl.decl.points.map(([x, y]) => '(' + x + ', ' + y + ')').join(' · ') || '_no points_') + '\n\n`' + decl.decl.file + ':' + (decl.decl.line + 1) + '`' } };
-    const cb = /^\(M\.V\.(.+)\)$/.exec(word);
-    if (cb) {
-      const info = language.callbacks.find((c) => c.name.toLowerCase() === cb[1].toLowerCase());
-      if (info) return { contents: { kind: MarkupKind.Markdown, value: `**${info.name}** (${info.group})\n\n_evidence: ${info.evidence}_ · \`${info.source}\`${info.note ? `\n\n${info.note}` : ''}` } };
-    }
-    return null;
-  }
-  return null;
+  if (!doc || !/\.osc$/i.test(doc.uri)) return null;
+  const s = await settings(doc.uri);
+  const value = hoverFor({ text: doc.getText(), line: params.position.line, character: params.position.character, project: project(doc.uri, s), language, omsiPath: s.omsiPath || undefined });
+  return value ? { contents: { kind: MarkupKind.Markdown, value } } : null;
+});
+
+connection.onReferences(async (params) => {
+  const doc = documents.get(params.textDocument.uri);
+  if (!doc || !/\.osc$/i.test(doc.uri)) return [];
+  const s = await settings(doc.uri);
+  const proj = project(doc.uri, s);
+  const key = refKeyAt(doc.getText(), params.position.line, params.position.character);
+  const r = key ? proj?.refs.get(key) : undefined;
+  if (!r) return [];
+  return [...r.reads, ...r.writes].map((l) => ({ uri: pathToFileURL(l.file).toString(), range: { start: { line: l.line, character: l.col }, end: { line: l.line, character: l.endCol } } }));
+});
+
+connection.onDocumentSymbol((params) => {
+  const doc = documents.get(params.textDocument.uri);
+  return doc && /\.osc$/i.test(doc.uri) ? (symbolsOf(doc.getText()) as DocumentSymbol[]) : [];
+});
+
+connection.onFoldingRanges((params) => {
+  const doc = documents.get(params.textDocument.uri);
+  return doc && /\.osc$/i.test(doc.uri) ? foldingOf(doc.getText()) : [];
 });
 
 const DECL = /^\((.)\.(.)\.(.+)\)$/;
