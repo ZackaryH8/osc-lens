@@ -2,9 +2,10 @@
   "_comment": "Single source of truth for OSC Lens. evidence: ida = Omsi.exe-derived in RE/*.md; corpus = derived from OMX and the stock .osc corpus; hyp = unverified.",
   "version": 1,
   "registers": {
-    "load": "l0..l15",
-    "store": "s0..s15",
-    "note": "OMX accepts 16; the official guide documents 0..7. Stores peek (do not pop)."
+    "load": "l0..l9",
+    "store": "s0..s9",
+    "note": "Token must be exactly 2 characters (sub_5D1E68). s15 / l10 fail as unknown words. Stores peek is OMX behaviour; not seen here.",
+    "evidence": "ida"
   },
   "stackDepth": 8,
   "operators": [
@@ -126,8 +127,8 @@
       "pushes": 1,
       "doc": "Natural logarithm.",
       "evidence": "hyp",
-      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
-      "note": "Present in OMX Ops but absent from the exe operator-token list quoted in openOMSI docs/FORMATS.md; unverified against Omsi.exe."
+      "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)",
+      "note": "Probably NOT an OMSI operator: the compiler has exactly 28 non-$ operator branches, matching the 28 tokens without these. An unknown word is an EConvertError. (ln would be read as register load l+\"n\".)"
     },
     {
       "token": "sign",
@@ -135,8 +136,8 @@
       "pushes": 1,
       "doc": "Alias of sgn.",
       "evidence": "hyp",
-      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
-      "note": "Present in OMX Ops but absent from the exe operator-token list quoted in openOMSI docs/FORMATS.md; unverified against Omsi.exe."
+      "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)",
+      "note": "Probably NOT an OMSI operator: the compiler has exactly 28 non-$ operator branches, matching the 28 tokens without these. An unknown word is an EConvertError. (ln would be read as register load l+\"n\".)"
     },
     {
       "token": "frac",
@@ -144,8 +145,8 @@
       "pushes": 1,
       "doc": "Fractional part.",
       "evidence": "hyp",
-      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
-      "note": "Present in OMX Ops but absent from the exe operator-token list quoted in openOMSI docs/FORMATS.md; unverified against Omsi.exe."
+      "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)",
+      "note": "Probably NOT an OMSI operator: the compiler has exactly 28 non-$ operator branches, matching the 28 tokens without these. An unknown word is an EConvertError. (ln would be read as register load l+\"n\".)"
     },
     {
       "token": "round",
@@ -153,8 +154,8 @@
       "pushes": 1,
       "doc": "Round to nearest.",
       "evidence": "hyp",
-      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
-      "note": "Present in OMX Ops but absent from the exe operator-token list quoted in openOMSI docs/FORMATS.md; unverified against Omsi.exe."
+      "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)",
+      "note": "Probably NOT an OMSI operator: the compiler has exactly 28 non-$ operator branches, matching the 28 tokens without these. An unknown word is an EConvertError. (ln would be read as register load l+\"n\".)"
     },
     {
       "token": "cos",
@@ -162,8 +163,8 @@
       "pushes": 1,
       "doc": "Cosine (radians).",
       "evidence": "hyp",
-      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
-      "note": "Present in OMX Ops but absent from the exe operator-token list quoted in openOMSI docs/FORMATS.md; unverified against Omsi.exe."
+      "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)",
+      "note": "Probably NOT an OMSI operator: the compiler has exactly 28 non-$ operator branches, matching the 28 tokens without these. An unknown word is an EConvertError. (ln would be read as register load l+\"n\".)"
     },
     {
       "token": "tan",
@@ -171,8 +172,8 @@
       "pushes": 1,
       "doc": "Tangent (radians).",
       "evidence": "hyp",
-      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
-      "note": "Present in OMX Ops but absent from the exe operator-token list quoted in openOMSI docs/FORMATS.md; unverified against Omsi.exe."
+      "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)",
+      "note": "Probably NOT an OMSI operator: the compiler has exactly 28 non-$ operator branches, matching the 28 tokens without these. An unknown word is an EConvertError. (ln would be read as register load l+\"n\".)"
     },
     {
       "token": "arccos",
@@ -180,8 +181,8 @@
       "pushes": 1,
       "doc": "Inverse cosine.",
       "evidence": "hyp",
-      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
-      "note": "Present in OMX Ops but absent from the exe operator-token list quoted in openOMSI docs/FORMATS.md; unverified against Omsi.exe."
+      "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)",
+      "note": "Probably NOT an OMSI operator: the compiler has exactly 28 non-$ operator branches, matching the 28 tokens without these. An unknown word is an EConvertError. (ln would be read as register load l+\"n\".)"
     },
     {
       "token": "sin",
@@ -461,10 +462,10 @@
       "token": "$=>",
       "pops": null,
       "pushes": null,
-      "doc": "Accepted by OMX as $>= (appears in mod scripts).",
+      "doc": "Not a string function: any $-prefixed token that is not one of the 19 compiles to nothing, silently. OMX treats it as $>=.",
       "evidence": "hyp",
-      "source": "OMX/src/OMX.Formats/Script/ScriptCompiler.cs (Ops table)",
-      "note": "String-stack effect not yet tabulated; stack analysis skips it."
+      "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)",
+      "note": "Count-based (19 codes 28-46); spellings not visible in the decompile."
     },
     {
       "token": "$msg",
@@ -499,7 +500,7 @@
     },
     {
       "token": "frame_ai",
-      "doc": "Per-frame block run only on the path-following AI route, never on ghosts.",
+      "doc": "Per-frame block run only on the path-following AI route, never on ghosts. With no {frame_ai}, the {frame} block is used instead.",
       "evidence": "ida",
       "source": "RE/omsi-2.3-vehicle-sound-system.md:51-56"
     },
@@ -513,9 +514,9 @@
     {
       "token": "trigger",
       "arg": true,
-      "doc": "{trigger:name} … {end}. Runs for trigger value 1; name_drag runs for 2; name_off otherwise. A repeated name never runs (first match wins, 0x5D2AF0).",
-      "evidence": "ida",
-      "source": "RE/omsi-2.3-clickable-controls-spec.md:18-20"
+      "doc": "{trigger:name} … {end}. Value 1 runs name, 2 runs name_drag, otherwise name_off. Duplicate names: the textually LAST definition wins (lists are built back to front; runtime lookup not confirmed).",
+      "evidence": "hyp",
+      "source": "RE/omsi-2.3-clickable-controls-spec.md:18-20; RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)"
     },
     {
       "token": "end",
@@ -527,7 +528,7 @@
       "token": "if",
       "doc": "Branch on st[0] != 0. UNRESOLVED whether OMSI pops the condition: OMX pops it (JumpIfZero), while one real mod script and openOMSI docs suggest it is left on the stack. Needs an IDA check of the {if} node before stack analysis relies on either.",
       "evidence": "hyp",
-      "source": "OMX ScriptRuntime.cs:231 (pops); Enviro 200 MMC script and openOMSI docs/FORMATS.md (suggest peek)",
+      "source": "OMX ScriptRuntime.cs:231 (pops); Enviro 200 MMC script and openOMSI docs/FORMATS.md (suggest peek); compile structure (true/false successors) in RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68); execute method still unread",
       "pops": null,
       "pushes": null
     },
@@ -934,6 +935,115 @@
       "group": "script-texture",
       "evidence": "corpus",
       "source": "OMX ScriptTextureSet.cs:21-27 (order STRONG, 0x7BB224)"
+    }
+  ],
+  "caseSensitive": {
+    "operators": true,
+    "stringOps": true,
+    "directives": true,
+    "accessLetters": true,
+    "evidence": "ida",
+    "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)",
+    "note": "OMX matches operators case-insensitively and upper-cases access letters; OMSI does neither (lower-case access compiles to nothing)."
+  },
+  "compilerRules": [
+    {
+      "id": "macro-order",
+      "doc": "A (M.L.x) call resolves only to macros defined LATER in the concatenated script text.",
+      "severity": "error",
+      "evidence": "ida",
+      "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)"
+    },
+    {
+      "id": "dup-last-wins",
+      "doc": "Duplicate macro/trigger names: the textually last definition wins; OMX comment claims the first.",
+      "severity": "info",
+      "evidence": "ida",
+      "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)"
+    },
+    {
+      "id": "dup-entry-first-wins",
+      "doc": "Duplicate {init}/{frame}: the textually first definition wins.",
+      "severity": "warning",
+      "evidence": "hyp",
+      "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)"
+    },
+    {
+      "id": "frame_ai-fallback",
+      "doc": "Without {frame_ai}, AI vehicles run {frame}.",
+      "severity": "info",
+      "evidence": "ida",
+      "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)"
+    },
+    {
+      "id": "stray-endif",
+      "doc": "Extra {endif} is structurally harmless but is almost certainly a mistake.",
+      "severity": "warning",
+      "evidence": "ida",
+      "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)"
+    },
+    {
+      "id": "unmatched-if-else",
+      "doc": "{if}/{else} without a matching {endif} reads past the if-stack (undefined).",
+      "severity": "error",
+      "evidence": "ida",
+      "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)"
+    },
+    {
+      "id": "unknown-word",
+      "doc": "Any word that is not an operator, register, string, number or valid access raises an exception in OMSI.",
+      "severity": "error",
+      "evidence": "ida",
+      "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)"
+    },
+    {
+      "id": "glued-token",
+      "doc": "Tokens are split on whitespace only; {if}(L.L.x) is one token and fails.",
+      "severity": "error",
+      "evidence": "ida",
+      "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)"
+    },
+    {
+      "id": "trailing-comment",
+      "doc": "A ' that is not in column 0 is not a comment and becomes a token.",
+      "severity": "error",
+      "evidence": "ida",
+      "source": "RE/omsi-2.3-vehicle-script-ingestion-audit.md SI19"
+    },
+    {
+      "id": "undeclared-variable",
+      "doc": "Logged as SC_ErrorInCommand_varinvalid; the node is kept with index -1.",
+      "severity": "error",
+      "evidence": "ida",
+      "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)"
+    },
+    {
+      "id": "unknown-constant",
+      "doc": "Logged (constantinvalid); not fatal.",
+      "severity": "warning",
+      "evidence": "ida",
+      "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)"
+    },
+    {
+      "id": "unknown-curve",
+      "doc": "Raises EXPC (functioninvalid): aborts compiling this script.",
+      "severity": "error",
+      "evidence": "ida",
+      "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)"
+    },
+    {
+      "id": "unknown-callback",
+      "doc": "Logged (macroinvalid text); node kept with index -1.",
+      "severity": "error",
+      "evidence": "ida",
+      "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)"
+    },
+    {
+      "id": "lowercase-access",
+      "doc": "(l.l.x) / (m.l.x): access letters are case-sensitive; a wrong-case first letter compiles to nothing.",
+      "severity": "warning",
+      "evidence": "ida",
+      "source": "RE/omsi-2.3-script-compiler.md §2 (sub_5D1E68)"
     }
   ]
 }
