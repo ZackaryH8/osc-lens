@@ -5,14 +5,23 @@
   "version": "0.0.1",
   "publisher": "omsi-mp",
   "private": true,
-  "engines": { "vscode": "^1.85.0" },
-  "categories": ["Programming Languages"],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
   "contributes": {
     "languages": [
       {
         "id": "osc",
-        "aliases": ["OMSI Script", "osc"],
-        "extensions": [".osc"],
+        "aliases": [
+          "OMSI Script",
+          "osc"
+        ],
+        "extensions": [
+          ".osc"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -22,9 +31,53 @@
         "scopeName": "source.osc",
         "path": "./syntaxes/osc.tmLanguage.json"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "OSC Lens",
+      "properties": {
+        "oscLens.omsiPath": {
+          "type": "string",
+          "default": "",
+          "description": "OMSI 2 install folder. Used to load program/varlist_roadvehicle.txt and callbacklist_roadvehicle.txt so undeclared-variable checks are exact."
+        },
+        "oscLens.stackAnalysis": {
+          "type": "boolean",
+          "default": false,
+          "description": "Experimental stack-depth checks right after an entry header. Assumes stores peek (unproven)."
+        },
+        "oscLens.disabledRules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Diagnostic codes to hide, e.g. stray-endif."
+        }
+      }
+    }
   },
   "scripts": {
-    "test": "node scripts/check-language-data.mjs"
+    "compile": "tsc -p .",
+    "watch": "tsc -w -p .",
+    "check": "node scripts/check-language-data.mjs",
+    "test": "npm run check && tsc -p . && node --test out/test/*.test.js",
+    "vscode": "npm run compile"
+  },
+  "dependencies": {
+    "@types/node": "^22.20.5",
+    "@types/vscode": "1.85",
+    "typescript": "^5.9.3",
+    "vscode-languageclient": "^9.0.1",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12"
+  },
+  "main": "./out/src/client.js",
+  "activationEvents": [
+    "onLanguage:osc"
+  ],
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.0.0"
   }
 }
