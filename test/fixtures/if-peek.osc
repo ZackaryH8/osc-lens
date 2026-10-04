@@ -1,0 +1,28 @@
+' Synthetic fixture: idioms seen in real mod scripts (an Enviro 200 MMC extension), written fresh.
+' {if} must not pop its condition: the inner && below ANDs with the outer condition.
+
+{macro:interlock}
+	(L.L.power) 0 >
+	{if}
+		(L.L.speed) 3.2 < &&
+		{if}
+			1 (S.L.locked)
+		{else}
+			0 (S.L.locked)
+		{endif}
+	{endif}
+' stray extra {endif}, present in real content; OMSI tolerates it
+	{endif}
+{end}
+
+{macro:clear_all}
+' stores peek, so one value can feed many stores
+	0 (S.L.a) (S.L.b) (S.L.c)
+{end}
+
+{macro:seat_flag}
+	3 (M.V.GetHumanCountOnSeat) 1 =
+	{if}
+		1 (S.L.flip1)
+	{endif}
+{end}

@@ -525,9 +525,11 @@
     },
     {
       "token": "if",
-      "doc": "Branch on the popped condition (OMX); OMSI semantics of pop vs peek are unconfirmed.",
-      "evidence": "hyp",
-      "source": "RE/omsi-2.3-vehicle-script-ingestion-audit.md; OMX ScriptCompiler.cs:56-121"
+      "doc": "Branch on st[0] != 0. The condition is NOT popped: real scripts follow {if} with \"x &&\" to AND against it, and openOMSI documents the same. OMX currently pops it (ScriptOp.JumpIfZero), which looks wrong for such scripts.",
+      "evidence": "corpus",
+      "source": "Enviro 200 MMC script (macros door_interlock, dashboard_display_kneeling); openOMSI docs/FORMATS.md; contradicts OMX ScriptRuntime.cs:231",
+      "pops": 0,
+      "pushes": 0
     },
     {
       "token": "else",
@@ -537,7 +539,7 @@
     },
     {
       "token": "endif",
-      "doc": "Closes {if}.",
+      "doc": "Closes {if}. A stray extra {endif} occurs in real content and is tolerated by OMSI (openOMSI note), so report it as a warning, not an error.",
       "evidence": "corpus",
       "source": "RE/omsi-2.3-vehicle-script-ingestion-audit.md; OMX ScriptCompiler.cs:56-121"
     }
@@ -799,7 +801,9 @@
       "group": "road-vehicle",
       "evidence": "hyp",
       "source": "OMX DevDocs/script-system-macro-plan.md:113-126",
-      "note": "Stack effect not tabulated."
+      "note": "Usage \"3 (M.V.GetHumanCountOnSeat) 1 =\": seat index in, count out. Stack effect from one real script only.",
+      "pops": 1,
+      "pushes": 1
     },
     {
       "name": "GetHumanCountOnPathLink",
